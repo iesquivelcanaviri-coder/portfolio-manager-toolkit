@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    {% set active_page = 'contact' %}
+    {% include '_navbar.html' %}
+
+    <div class="card">
+        <h1>Contact</h1>
+        <p>
+            This project was developed as a portfolio management decision-support application
+            using Flask, HTML, CSS, JavaScript, and Yahoo Finance data.
+        </p>
+        <p>
+            It demonstrates how a portfolio manager can combine client mandate information,
+            investment decision criteria, market analysis, and portfolio construction logic
+            into a simple workflow.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Project Focus</h2>
+        <ul>
+            <li>Portfolio-specific suitability analysis</li>
+            <li>Risk and return assessment</li>
+            <li>Position sizing decisions</li>
+            <li>Market screening and ranking</li>
+            <li>Portfolio construction support</li>
+        </ul>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

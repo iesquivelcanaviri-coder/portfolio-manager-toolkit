@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Market Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    {% set active_page = 'market_dashboard' %}
+    {% include '_navbar.html' %}
+
+    <h1>Market Dashboard</h1>
+
+    <div class="card">
+        <h2>What this dashboard does</h2>
+        <p>
+            This page helps a portfolio manager screen securities before moving to detailed analysis.
+            It is designed to reduce the list quickly by applying risk, return, valuation, and conviction filters.
+        </p>
+
+        <h3>What each smart preset means</h3>
+        <p><strong>Low Risk:</strong> highlights more stable securities with lower market sensitivity. Typically includes assets with beta at or below 1 and moderate volatility. These are commonly used for capital preservation, income generation, or defensive positioning within a portfolio.</p>
+
+        <p><strong>High Conviction (6% position):</strong> identifies the strongest investment ideas based on expected return, volatility, and risk-adjusted performance. These are high-confidence opportunities where the manager allocates more capital, similar to concentrated or high-conviction strategies.</p>
+
+        <p><strong>Core Holdings (3.5% position):</strong> represents stable, well-balanced investments that form the foundation of the portfolio. These provide diversification and consistent exposure while still contributing to overall returns.</p>
+
+        <p><strong>Satellite / Diversifiers (3% position):</strong> includes supporting positions used to enhance diversification or gain exposure to specific sectors, themes, or regions. These positions are smaller because they carry either more uncertainty or a narrower role.</p>
+
+        <p><strong>Exploratory / High Risk (1–2% position):</strong> captures higher-risk or less certain opportunities. These are included in small sizes to allow upside participation while limiting downside impact.</p>
+
+        <p><strong>Income / Defensive:</strong> focuses on securities that provide stability or income, such as bond ETFs, dividend-paying equities, and defensive sectors (e.g. utilities, healthcare, consumer staples). These are typically used in lower-risk portfolios or to reduce overall volatility.</p>
+
+        <p><strong>Best Ranked:</strong> highlights securities that combine strong overall scores with acceptable risk-adjusted returns. In this project, that means a score of at least 5 and a Sharpe-like ratio above 0.3, making them suitable candidates for inclusion in most portfolios.</p>
+
+        <p><strong>Cash (5% allocation):</strong> used when no suitable investment meets the required criteria or to manage overall portfolio risk. Holding cash is an active decision and serves as a control mechanism during uncertain conditions.</p>
+    </div>
+
+    <div class="card">
+        <h2>Smart Filters</h2>
+
+        <div class="filters-grid">
+            <div>
+                <label for="ticker-filter">Ticker</label>
+                <select id="ticker-filter">
+                    <option value="">All tickers</option>
+                    {% for ticker in rows | map(attribute='ticker') | list | sort %}
+                    <option value="{{ ticker }}">{{ ticker }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="sector-filter">Sector</label>
+                <select id="sector-filter">
+                    <option value="">All sectors</option>
+                    {% for sector in rows | map(attribute='sector') | unique | list | sort %}
+                    <option value="{{ sector }}">{{ sector }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label for="decision-filter">Decision</label>
+                <select id="decision-filter">
+                    <option value="">All decisions</option>
+                    <option value="YES — high conviction">YES — high conviction</option>
+                    <option value="YES — core holding">YES — core holding</option>
+                    <option value="YES — satellite">YES — satellite</option>
+                    <option value="LIMITED — high risk / exploratory">LIMITED — high risk / exploratory</option>
+                    <option value="NO — hold as cash instead">NO — hold as cash instead</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="score-filter">Minimum Score</label>
+                <select id="score-filter">
+                    <option value="">Any</option>
+                    <option value="3">3+</option>
+                    <option value="5">5+</option>
+                    <option value="7">7+</option>
+                </select>
+            </div>
+
+            <div>
+                <label for="beta-filter">Maximum Beta</label>
+                <input type="number" id="beta-filter" step="0.1" placeholder="e.g. 1.0">
+            </div>
+
+            <div>
+                <label for="volatility-filter">Maximum Volatility %</label>
+                <input type="number" id="volatility-filter" step="0.1" placeholder="e.g. 15">
+            </div>
+
+            <div>
+                <label for="sharpe-filter">Minimum Sharpe</label>
+                <input type="number" id="sharpe-filter" step="0.1" placeholder="e.g. 0.5">
+            </div>
+
+            <div>
+                <label for="pe-filter">Maximum P/E</label>
+                <input type="number" id="pe-filter" step="0.1" placeholder="e.g. 20">
+            </div>
+        </div>
+
+    <div class="filter-actions">
+        <button type="button" id="preset-low-risk">Low Risk</button>
+        <button type="button" id="preset-high-conviction">High Conviction</button>
+        <button type="button" id="preset-core">Core Holdings</button>
+        <button type="button" id="preset-satellite">Satellite / Diversifiers</button>
+        <button type="button" id="preset-exploratory">Exploratory / High Risk</button>
+        <button type="button" id="preset-income">Income / Defensive</button>
+        <button type="button" id="preset-best-ranked">Best Ranked</button>
+        <button type="button" id="preset-cash">Cash</button>
+        <button type="button" id="clear-filters">Clear Filters</button>
+    </div>
+
+        <p id="dashboard-summary" class="muted">Showing all securities.</p>
+    </div>
+
+    <div class="card">
+        <h2>Yahoo Finance Market Table</h2>
+        <table class="table" id="market-table">
+            <thead>
+                <tr>
+                    <th data-sort="ticker">Ticker</th>
+                    <th data-sort="sector">Sector</th>
+                    <th data-sort="industry">Industry</th>
+                    <th data-sort="market_cap">Market Cap</th>
+                    <th data-sort="beta">Beta</th>
+                    <th data-sort="pe_ratio">P/E Ratio</th>
+                    <th data-sort="dividend_yield">Dividend Yield</th>
+                    <th data-sort="expected_return_percent">Expected Return</th>
+                    <th data-sort="score">Score</th>
+                    <th data-sort="decision">Decision</th>
+                    <th data-sort="tag">Tag</th>
+                    <th data-sort="suggested_weight">Suggested Weight</th>
+                    <th data-sort="volatility">Volatility</th>
+                    <th data-sort="sharpe_like">Sharpe</th>
+                    <th data-sort="ranking_score">Ranking Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in rows %}
+               <tr
+                    data-ticker="{{ row.ticker }}"
+                    data-sector="{{ row.sector }}"
+                    data-decision="{{ row.decision }}"
+                    data-score="{{ row.score if row.score is not none else '' }}"
+                    data-beta="{{ row.beta if row.beta is not none else '' }}"
+                    data-pe="{{ row.pe_ratio if row.pe_ratio is not none else '' }}"
+                    data-volatility="{{ row.volatility if row.volatility is not none else '' }}"
+                    data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}"
+                    data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}"
+                    data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}"
+                    data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}"
+                    data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}"
+                    data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}"
+                    data-satellite="{{ 'true' if row.is_satellite else 'false' }}"
+                    data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}"
+                    data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}"
+                    data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}"
+                    class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}"
+                >
+                    <td>{{ row.ticker }}</td>
+                    <td>{{ row.sector }}</td>
+                    <td>{{ row.industry }}</td>
+                    <td>{{ row.market_cap_display }}</td>
+                    <td>{{ row.beta if row.beta is not none else "N/A" }}</td>
+                    <td>{{ row.pe_ratio if row.pe_ratio is not none else "N/A" }}</td>
+                    <td>{{ row.dividend_yield if row.dividend_yield is not none else "N/A" }}{% if row.dividend_yield is not none %}%{% endif %}</td>
+                    <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td>
+                    <td>{{ row.score if row.score is not none else "N/A" }}</td>
+                    <td>{{ row.decision }}</td>
+                    <td><span class="tag">{{ row.tag }}</span></td>
+                    <td>{{ row.suggested_weight }}</td>
+                    <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td>
+                    <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td>
+                    <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

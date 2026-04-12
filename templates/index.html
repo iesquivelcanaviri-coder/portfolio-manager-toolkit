@@ -1,5 +1,68 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Portfolio Manager Toolkit</h1>
-<p>Welcome to the app.</p>
-{% endblock %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Management Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    {% set active_page = 'home' %}
+    {% include '_navbar.html' %}
+
+    <div class="card">
+        <h1>Portfolio Management Decision Support Tool</h1>
+        <p>
+            This project simulates how a portfolio manager can evaluate securities using
+            return analysis, risk metrics, valuation indicators, and internal portfolio
+            sizing criteria. The tool combines Yahoo Finance market data with portfolio
+            management rules to support investment decisions.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>What This Project Does</h2>
+        <p>
+            The site is designed to help the user assess securities and portfolio ideas
+            using a structured portfolio management approach. It combines qualitative
+            judgment with quantitative analysis to support decisions on suitability,
+            conviction level, and recommended portfolio weight.
+        </p>
+        <ul>
+            <li>Understand the position sizing framework used in the project</li>
+            <li>Review high-level investment decision criteria</li>
+            <li>Analyse a selected stock or ETF using 1-year and 3-month data</li>
+            <li>Compare multiple securities in the market dashboard</li>
+            <li>Filter and sort securities by beta, P/E ratio, score, Sharpe-like ratio, and decision</li>
+            <li>See risk, return, Sharpe-like, and beta</li>
+            <li>Apply position sizing rules (6%, 3.5%, 3%, 1–2%, and cash)</li>
+            <li>Build and review portfolio holdings</li>
+            <li>Track portfolio allocation, remaining cash, and average beta</li>
+        </ul>
+
+        <h2>Who This Is For</h2>
+        <ul>
+            <li>Students learning portfolio management</li>
+            <li>Junior analysts and portfolio managers</li>
+            <li>Advisors needing a simple decision-support tool</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>How to Use the Site</h2>
+        <ol>
+            <li>Start on the <strong>Market Dashboard</strong> page to screen and compare securities.</li>
+            <li>Go to the <strong>Criteria</strong> page to analyse a specific stock or ETF within the context of a chosen portfolio mandate.</li>
+            <li>Review score, beta, decision, expected return, volatility, Sharpe-like ratio, and forecast outputs.</li>
+            <li>Use the position sizing framework to decide whether the security belongs as a high-conviction, core, satellite, exploratory, or cash decision.</li>
+            <li>Add or update the position and monitor portfolio allocation summary.</li>
+        </ol>
+    </div>
+
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

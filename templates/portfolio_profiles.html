@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portfolio Profiles</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="container">
+
+    {% set active_page = 'portfolio_profiles' %}
+    {% include '_navbar.html' %}
+
+    <div class="card">
+        <h1>Portfolio Profiles and Manager Workflow</h1>
+        <p>
+            This page breaks down each portfolio profile and shows the type of review a portfolio
+            manager would complete before making an investment decision. The goal is to assess
+            suitability, mandate fit, risk tolerance, constraints, and implementation priorities
+            before adding any new security to the portfolio.
+        </p>
+    </div>
+
+    <div class="card">
+        <h2>Portfolio Manager Workflow</h2>
+        <ol>
+            <li>Identify the client or entity and confirm legal ownership of the account.</li>
+            <li>Review compliance status, including KYC, AML, source of wealth, and tax reporting status.</li>
+            <li>Confirm investment objectives, benchmark, and expected return range.</li>
+            <li>Assess risk tolerance, risk capacity, and maximum acceptable drawdown.</li>
+            <li>Review financial position, liquidity needs, liabilities, and cash flow profile.</li>
+            <li>Check all portfolio constraints, including legal, ESG, currency, and concentration limits.</li>
+            <li>Review behavioural factors that may affect implementation or reporting style.</li>
+            <li>Confirm mandate type, rebalancing frequency, and IPS requirements.</li>
+            <li>Decide whether a proposed investment is suitable for the mandate.</li>
+            <li>Determine implementation size, monitoring frequency, and reporting expectations.</li>
+        </ol>
+    </div>
+
+    <div class="card">
+        <h2>Portfolio Manager Checklist</h2>
+        <ul>
+            <li>Client identity or legal entity confirmed</li>
+            <li>KYC and AML status complete</li>
+            <li>Source of wealth and source of funds understood</li>
+            <li>Investment objective clearly defined</li>
+            <li>Benchmark identified</li>
+            <li>Risk tolerance consistent with proposed assets</li>
+            <li>Liquidity requirements reviewed</li>
+            <li>Legal and regulatory constraints checked</li>
+            <li>ESG restrictions or preferences checked</li>
+            <li>Currency rules checked</li>
+            <li>Maximum position size checked</li>
+            <li>Behavioural risks considered</li>
+            <li>Mandate and IPS requirements respected</li>
+            <li>Monitoring and reporting plan appropriate</li>
+        </ul>
+    </div>
+
+    {% for key, portfolio in portfolios.items() %}
+    <div class="card">
+        <h2>
+            {% if portfolio.identity.name is defined %}
+                {{ portfolio.identity.name }}
+            {% else %}
+                {{ portfolio.identity.company_name }}
+            {% endif %}
+        </h2>
+
+        <p><strong>Portfolio Key:</strong> {{ key }}</p>
+        <p><strong>Client ID:</strong> {{ portfolio.client_id }}</p>
+        <p><strong>Reference Ticker:</strong> {{ portfolio.ticker }}</p>
+        <p><strong>Portfolio Value:</strong> {{ "{:,.0f}".format(portfolio.portfolio_value) }}</p>
+
+        <h3>1. Identity</h3>
+        <ul>
+            {% if portfolio.identity.name is defined %}
+                <li><strong>Name:</strong> {{ portfolio.identity.name }}</li>
+                <li><strong>Date of Birth:</strong> {{ portfolio.identity.date_of_birth }}</li>
+                <li><strong>Nationality:</strong> {{ portfolio.identity.nationality }}</li>
+                <li><strong>Tax Residency:</strong> {{ portfolio.identity.tax_residency }}</li>
+                <li><strong>Address:</strong> {{ portfolio.identity.address }}</li>
+                <li><strong>Identification:</strong> {{ portfolio.identity.identification }}</li>
+            {% else %}
+                <li><strong>Company Name:</strong> {{ portfolio.identity.company_name }}</li>
+                <li><strong>Incorporation Year:</strong> {{ portfolio.identity.incorporation_year }}</li>
+                <li><strong>Residency:</strong> {{ portfolio.identity.residency }}</li>
+                <li><strong>Ownership:</strong> {{ portfolio.identity.ownership }}</li>
+                <li><strong>Signatories:</strong> {{ portfolio.identity.signatories | join(', ') }}</li>
+            {% endif %}
+        </ul>
+
+        <h3>2. Compliance Review</h3>
+        <ul>
+            <li><strong>KYC:</strong> {{ portfolio.compliance.kyc }}</li>
+            <li><strong>AML:</strong> {{ portfolio.compliance.aml }}</li>
+            <li><strong>Source of Wealth:</strong> {{ portfolio.compliance.source_of_wealth }}</li>
+            <li><strong>Source of Funds:</strong> {{ portfolio.compliance.source_of_funds }}</li>
+            <li><strong>FATCA / CRS:</strong> {{ portfolio.compliance.fatca_crs }}</li>
+            <li><strong>PEP:</strong> {{ portfolio.compliance.pep }}</li>
+        </ul>
+
+        <h3>3. Investment Objectives</h3>
+        <ul>
+            <li><strong>Goals:</strong> {{ portfolio.objectives.goals }}</li>
+            <li><strong>Time Horizon:</strong> {{ portfolio.objectives.time_horizon_years }} years</li>
+            <li><strong>Expected Return:</strong> {{ portfolio.objectives.expected_return_percent }}%</li>
+            <li><strong>Benchmark:</strong> {{ portfolio.objectives.benchmark }}</li>
+        </ul>
+
+        <h3>4. Risk Assessment</h3>
+        <ul>
+            <li><strong>Risk Tolerance:</strong> {{ portfolio.risk_profile.risk_tolerance }}</li>
+            <li><strong>Risk Capacity:</strong> {{ portfolio.risk_profile.risk_capacity }}</li>
+            <li><strong>Maximum Drawdown:</strong> {{ portfolio.risk_profile.max_drawdown_percent }}%</li>
+            <li><strong>Portfolio Volatility Input:</strong> {{ portfolio.volatility }}%</li>
+        </ul>
+
+        <h3>5. Financial Position</h3>
+        <ul>
+            {% for field, value in portfolio.financials.items() %}
+                <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li>
+            {% endfor %}
+        </ul>
+
+        <h3>6. Constraints</h3>
+        <ul>
+            {% for field, value in portfolio.constraints.items() %}
+                <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li>
+            {% endfor %}
+            <li><strong>Maximum Position Weight:</strong> {{ portfolio.max_weight }}%</li>
+        </ul>
+
+        <h3>7. Preferences</h3>
+        <ul>
+            <li><strong>Investment Style:</strong> {{ portfolio.preferences.investment_style }}</li>
+            <li><strong>Products:</strong> {{ portfolio.preferences.products | join(', ') }}</li>
+            <li><strong>Communication:</strong> {{ portfolio.preferences.communication }}</li>
+        </ul>
+
+        <h3>8. Behavioural Review</h3>
+        <ul>
+            <li><strong>Past Reactions:</strong> {{ portfolio.behavioural.past_reactions }}</li>
+            <li><strong>Decision Style:</strong> {{ portfolio.behavioural.decision_style }}</li>
+            <li><strong>Biases:</strong> {{ portfolio.behavioural.biases | join(', ') }}</li>
+        </ul>
+
+        <h3>9. Mandate Review</h3>
+        <ul>
+            <li><strong>Mandate Type:</strong> {{ portfolio.mandate.type }}</li>
+            <li><strong>Fees:</strong> {{ portfolio.mandate.fees_percent }}%</li>
+            <li><strong>Rebalancing Frequency:</strong> {{ portfolio.mandate.rebalancing_frequency }}</li>
+            <li><strong>IPS:</strong> {{ portfolio.mandate.ips }}</li>
+        </ul>
+
+        <h3>10. Portfolio Manager Conclusion</h3>
+        <p>
+            A portfolio manager reviewing this mandate would focus on whether any proposed investment
+            is suitable for the stated objective, consistent with the risk profile, compliant with the
+            listed constraints, and practical given the client’s behavioural profile and reporting needs.
+        </p>
+
+        <h3>Manager Action Checklist for This Portfolio</h3>
+        <ul>
+            <li>Confirm suitability of proposed assets against objective and benchmark</li>
+            <li>Check position size against max weight and concentration rules</li>
+            <li>Check mandate restrictions before execution</li>
+            <li>Review liquidity and cash needs before investing</li>
+            <li>Confirm currency fit with mandate requirements</li>
+            <li>Review whether reporting frequency matches portfolio complexity</li>
+            <li>Ensure final recommendation matches IPS and rebalancing policy</li>
+        </ul>
+    </div>
+    {% endfor %}
+
+</div>
+
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
