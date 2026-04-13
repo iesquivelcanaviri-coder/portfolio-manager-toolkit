@@ -370,3 +370,152 @@ PORTFOLIOS = {
     "scenario4": PORTFOLIO_4,
     "scenario5": PORTFOLIO_5,
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+# ============================================================ 
+# ROUTES → HTML PAGES  # This section contains Flask routes that return HTML templates
+# ============================================================ 
+
+@app.route("/")  # Registers the root URL so visiting the site homepage triggers the home() function
+def home():  # Defines the Flask view function for the home page
+    return render_template("index.html")  # Renders the index.html template and sends it back to the browser
+
+@app.route("/criteria")  # Registers the /criteria URL so Flask knows which function should handle that page
+def criteria():  # Defines the Flask view function for the criteria page
+    return render_template(  # Starts the template-rendering call for criteria.html
+        "criteria.html",  # Tells Flask to render the criteria.html file from the templates folder
+        portfolio_choices=get_portfolio_choices(),  # Passes the dropdown-ready portfolio choice list into the Jinja template
+        default_portfolio_key="scenario1",  # Passes scenario1 as the default selected portfolio in the dropdown
+        default_portfolio_name=get_portfolio_display_name(PORTFOLIO_1)  # Passes the display name of PORTFOLIO_1 for default page text
+    )  
+
+def get_cached_market_rows():  # Defines a helper function that returns cached dashboard rows instead of rebuilding them every time
+    now = time.time()  # Stores the current Unix timestamp in seconds so cache age can be checked
+
+    if (  # Starts the cache-validation condition
+        dashboard_cache["rows"] is None  # Rebuilds the cache if no rows have ever been stored yet
+        or now - dashboard_cache["timestamp"] > DASHBOARD_CACHE_SECONDS  # Rebuilds the cache if the existing cache is older than the allowed cache duration
+    ):  # Ends the cache condition
+        dashboard_cache["rows"] = build_market_rows()  # Recomputes the dashboard rows and stores them in the cache
+        dashboard_cache["timestamp"] = now  # Updates the cache timestamp to the current time after rebuilding
+
+    return dashboard_cache["rows"]  # Returns the cached dashboard rows whether they were freshly built or already stored
+    
+@app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
+def market_dashboard():  # Defines the Flask view function for the dashboard page
+    rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
+    return render_template("market_dashboard.html", rows=rows)  # Renders market_dashboard.html and passes the rows variable into the Jinja template
+
+@app.route("/contact")  # Registers the /contact route for the contact page
+def contact():  # Defines the Flask view function for the contact page
+    return render_template("contact.html")  # Renders the contact.html template and returns it to the browser
+
+
+@app.route("/portfolio_profiles")  # Registers the /portfolio_profiles route for the portfolio workflow/profile page
+def portfolio_profiles():  # Defines the Flask view function for the portfolio profiles page
+    return render_template("portfolio_profiles.html", portfolios=PORTFOLIOS)  # Renders portfolio_profiles.html and passes the full PORTFOLIOS dictionary into the Jinja template
+
+
+# ============================================================  
+# ROUTES → API ENDPOINTS  # This section contains Flask routes that return JSON data instead of HTML
+# ============================================================ 
+
+@app.route("/analyze", methods=["POST"])  # Registers the /analyze endpoint and allows only POST requests because the frontend submits form data to it
+def analyze():  # Defines the Flask view function that handles stock analysis requests
+    ticker = request.form.get("ticker", "").strip().upper()  # Reads the ticker from submitted form data, removes extra spaces, and converts it to uppercase
+    portfolio_key = request.form.get("portfolio_key", "scenario1")  # Reads the selected portfolio_key from form data and defaults to scenario1 if missing
+
+    if portfolio_key not in PORTFOLIOS:  # Checks whether the submitted portfolio_key actually exists in the master portfolio dictionary
+        return jsonify({"error": "Invalid portfolio selected."}), 400  # Returns a JSON error with HTTP status 400 if the portfolio key is invalid
+
+    if not ticker:  # Checks whether the user failed to submit a ticker
+        return jsonify({"error": "Please select a ticker."}), 400  # Returns a JSON error with HTTP status 400 if the ticker is empty
+
+    try:  # Starts a try block so unexpected analysis problems do not crash the application
+        benchmark_ticker = PORTFOLIOS[portfolio_key]["ticker"]  # Looks up the benchmark/reference ticker associated with the selected portfolio
+        result = analyze_stock(ticker, benchmark_ticker, portfolio_key)  # Calls the main analysis function using the selected ticker, benchmark, and portfolio
+        return jsonify(result)  # Returns the completed analysis result as JSON to the JavaScript frontend
+    except Exception as e:  # Catches unexpected errors during analysis
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500  # Returns a JSON error with HTTP status 500 if analysis fails unexpectedly
+
+@app.route("/add-to-portfolio", methods=["POST"])  # Registers the /add-to-portfolio endpoint and allows only POST because the frontend sends JSON data to it
+def add_to_portfolio():  # Defines the Flask view function that adds or updates a holding in a selected portfolio
+    data = request.get_json(force=True)  # Reads the incoming request body as JSON and forces parsing even if headers are imperfect
+
+    ticker = data.get("ticker")  # Extracts the ticker value from the JSON payload
+    portfolio_key = data.get("portfolio_key")  # Extracts the selected portfolio key from the JSON payload
+    portfolio_name = data.get("portfolio_name")  # Extracts the human-readable portfolio name from the JSON payload
+    recommended_weight = data.get("recommended_weight")  # Extracts the recommended weight text from the JSON payload
+    decision = data.get("decision")  # Extracts the decision text from the JSON payload
+    tag = data.get("tag")  # Extracts the short display tag from the JSON payload
+    sector = data.get("sector")  # Extracts the sector metadata from the JSON payload
+    industry = data.get("industry")  # Extracts the industry metadata from the JSON payload
+    beta = data.get("beta")  # Extracts the beta value from the JSON payload
+
+    if not ticker or not portfolio_key or portfolio_key not in PORTFOLIOS:  # Validates that the ticker exists, the portfolio key exists, and the portfolio key is valid
+        return jsonify({"error": "Invalid stock or portfolio."}), 400  # Returns a JSON error with HTTP status 400 if validation fails
+
+    validation = validate_portfolio_addition(  # Calls the portfolio-validation helper to check weight limits, mandate restrictions, and warnings
+        portfolio_key=portfolio_key,  # Passes the selected portfolio key into the validation function
+        ticker=ticker,  # Passes the ticker into the validation function
+        recommended_weight=recommended_weight,  # Passes the suggested weight text so it can be parsed and checked
+        sector=sector,  # Passes the sector so ESG and mandate checks can use it
+        industry=industry  # Passes the industry so ESG and mandate checks can use it
+    )  
+
+    if validation["errors"]:  # Checks whether the validation helper found hard errors that should block the add/update action
+        return jsonify({  # Starts building a JSON error response
+            "error": validation["errors"],  # Returns the list of hard validation errors
+            "warnings": validation["warnings"]  # Also returns any warnings found during validation
+        }), 400  # Sends the JSON back with HTTP status 400 because the request is not valid
+
+    existing_stock = next(  # Starts a search for an already-existing holding with the same ticker in the selected portfolio
+        (stock for stock in selected_stocks[portfolio_key] if stock["ticker"] == ticker),  # Generator expression returns the first matching holding if it exists
+        None  # Returns None if the ticker is not already in the selected portfolio
+    )  
+
+    payload = {  # Builds the holding dictionary that will be saved in selected_stocks
+        "portfolio_name": portfolio_name,  # Stores the human-readable portfolio name
+        "ticker": ticker,  # Stores the ticker symbol
+        "recommended_weight": recommended_weight,  # Stores the suggested position-size text such as 6% or 3.5%
+        "weight_decimal": validation["weight_decimal"],  # Stores the parsed decimal weight returned by the validation function
+        "decision": decision,  # Stores the decision label for this holding
+        "tag": tag,  # Stores the short UI tag
+        "sector": sector,  # Stores the sector metadata
+        "industry": industry,  # Stores the industry metadata
+        "beta": beta  # Stores the beta value
+    }  
+
+    if existing_stock:  # Checks whether this ticker is already present in the selected portfolio
+        existing_stock.update(payload)  # Updates the existing stored holding with the new payload values
+        message = f"{ticker} updated in portfolio."  # Creates a confirmation message telling the frontend the holding was updated
+    else:  # Runs when the ticker does not already exist in the selected portfolio
+        selected_stocks[portfolio_key].append(payload)  # Appends the new holding payload to the selected portfolio list
+        message = f"{ticker} added to portfolio."  # Creates a confirmation message telling the frontend the holding was newly added
+
+    return jsonify({  # Starts building the success JSON response
+        "message": message,  # Returns the add/update confirmation message
+        "warnings": validation["warnings"],  # Returns any warnings that still need to be shown to the user
+        "portfolio": build_grouped_portfolio_payload()  # Returns refreshed grouped portfolio data so the frontend can redraw current holdings immediately
+    }) 
+
+@app.route("/portfolio-stocks")  # Registers the /portfolio-stocks endpoint used by JavaScript to fetch grouped portfolio holdings
+def portfolio_stocks():  # Defines the Flask view function for returning current selected holdings
+    return jsonify(build_grouped_portfolio_payload())  # Returns the grouped holdings and summary metrics as JSON
+
+# ============================================================ 
+# RUN APP  # This section runs the Flask development server when the file is executed directly
+# ============================================================ 
+if __name__ == "__main__":  # Checks whether this file is being run directly rather than imported into another Python file
+    app.run(debug=True)  # Starts the Flask development server with debug mode enabled so code changes and errors are easier to test
