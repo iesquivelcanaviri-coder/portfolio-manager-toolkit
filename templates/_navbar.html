@@ -1,7 +1,7 @@
-<div class="navbar">
-    <a href="{{ url_for('home') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a>
-    <a href="{{ url_for('portfolio_profiles') }}" class="{% if active_page == 'portfolio_profiles' %}active{% endif %}">Portfolio Profiles</a>
-    <a href="{{ url_for('market_dashboard') }}" class="{% if active_page == 'market_dashboard' %}active{% endif %}">Market Dashboard</a>
-    <a href="{{ url_for('criteria') }}" class="{% if active_page == 'criteria' %}active{% endif %}">Criteria</a>
-    <a href="{{ url_for('contact') }}" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a>
-</div>
+<div class="navbar"> 
+    <a href="{{ url_for('home') }}" class="{% if active_page == 'home' %}active{% endif %}">Home</a> <!-- Creates the Home navigation link; url_for('home') connects this link to the Flask route function called home(), and the Jinja if statement adds the class "active" only when the current page variable active_page equals 'home', so the current page can be highlighted in the navbar -->
+    <a href="{{ url_for('portfolio_profiles') }}" class="{% if active_page == 'portfolio_profiles' %}active{% endif %}">Portfolio Profiles</a> <!-- Creates the Portfolio Profiles navigation link; url_for('portfolio_profiles') connects directly to the Flask route function portfolio_profiles(), and the Jinja condition adds the "active" class when active_page is set to 'portfolio_profiles', which visually shows the user that this page is currently open -->
+    <a href="{{ url_for('market_dashboard') }}" class="{% if active_page == 'market_dashboard' %}active{% endif %}">Market Dashboard</a> <!-- Creates the Market Dashboard navigation link; url_for('market_dashboard') links to the Flask route named market_dashboard(), and the inline Jinja condition checks whether this is the current page so the CSS "active" class can underline or highlight it -->
+    <a href="{{ url_for('criteria') }}" class="{% if active_page == 'criteria' %}active{% endif %}">Criteria</a> <!-- Creates the Criteria navigation link; url_for('criteria') connects this anchor tag to the Flask criteria() route, and the Jinja condition applies the "active" class when active_page has been set to 'criteria' in that HTML page before including the navbar -->
+    <a href="{{ url_for('contact') }}" class="{% if active_page == 'contact' %}active{% endif %}">Contact</a> <!-- Creates the Contact navigation link; url_for('contact') points to the Flask route function contact(), and the Jinja if block adds the "active" CSS class only when the current page variable matches 'contact' -->
+</div> 
