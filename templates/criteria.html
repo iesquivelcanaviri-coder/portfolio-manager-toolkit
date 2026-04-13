@@ -1,70 +1,82 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Criteria</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<!DOCTYPE html> <!-- Declares HTML5 document type, ensuring modern browser rendering standards -->
+
+<html lang="en"> <!-- Root element; sets language to English for accessibility and SEO -->
+
+<head> <!-- Contains metadata, styles, and document configuration -->
+    <meta charset="UTF-8"> <!-- Defines UTF-8 encoding to correctly render text and symbols -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Enables responsive layout on mobile devices -->
+    <title>Portfolio Criteria</title> <!-- Title shown in browser tab -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links Flask static CSS file using url_for to ensure correct path resolution -->
 </head>
 
-<body>
-<div class="container">
+<body> <!-- Main visible content of the webpage -->
+<div class="container"> <!-- Wrapper container used for layout consistency and styling -->
 
-    {% set active_page = 'criteria' %}
-    {% include '_navbar.html' %}
+    {% set active_page = 'criteria' %} <!-- Jinja variable used to highlight active page in navbar -->
+    {% include '_navbar.html' %} <!-- Includes reusable navigation bar template -->
 
-    <h1>Portfolio Criteria</h1>
+    <h1>Portfolio Criteria</h1> <!-- Main page heading -->
 
-    <div class="collapsible-card">
-        <button class="collapsible-btn" type="button">High-Level Checklist</button>
-        <div class="collapsible-content">
-            <ul>
-                <li>Expected return should be attractive relative to risk.</li>
-                <li>Volatility should be appropriate for the portfolio objective.</li>
-                <li>Beta should be consistent with the benchmark and mandate.</li>
-                <li>The stock or ETF should justify its portfolio weight.</li>
-                <li>Risk-adjusted return should support the investment case.</li>
-                <li>The final decision should map to a realistic portfolio size.</li>
+    <!-- ========================= -->
+    <!-- COLLAPSIBLE CHECKLIST -->
+    <!-- ========================= -->
+
+    <div class="collapsible-card"> <!-- Card container styled for collapsible section -->
+        <button class="collapsible-btn" type="button">High-Level Checklist</button> <!-- Button triggers expand/collapse via JS -->
+        <div class="collapsible-content"> <!-- Hidden content that expands when button is clicked -->
+            <ul> <!-- Unordered list of portfolio evaluation criteria -->
+                <li>Expected return should be attractive relative to risk.</li> <!-- Ensures return compensates for risk -->
+                <li>Volatility should be appropriate for the portfolio objective.</li> <!-- Aligns with risk tolerance -->
+                <li>Beta should be consistent with the benchmark and mandate.</li> <!-- Ensures market exposure alignment -->
+                <li>The stock or ETF should justify its portfolio weight.</li> <!-- Validates position sizing -->
+                <li>Risk-adjusted return should support the investment case.</li> <!-- Uses Sharpe-like logic -->
+                <li>The final decision should map to a realistic portfolio size.</li> <!-- Ensures implementability -->
             </ul>
         </div>
     </div>
 
-    <div class="box">
-        <h2>Position Sizing Criteria</h2>
+    <!-- ========================= -->
+    <!-- POSITION SIZING SECTION -->
+    <!-- ========================= -->
 
-        <button type="button" class="accordion">6% Position – High Conviction</button>
-        <div class="panel">
-            <p class="title">Qualitative Criteria</p>
+    <div class="box"> <!-- Main container for position sizing framework -->
+        <h2>Position Sizing Criteria</h2> <!-- Section title -->
+
+        <!-- Accordion button controls visibility of panel below -->
+        <button type="button" class="accordion">6% Position – High Conviction</button> <!-- High conviction position -->
+        <div class="panel"> <!-- Hidden panel toggled via JavaScript -->
+            <p class="title">Qualitative Criteria</p> <!-- Section label -->
             <ul>
-                <li>Strongest investment thesis</li>
-                <li>High-quality business</li>
-                <li>Predictable earnings</li>
-                <li>Clear catalyst</li>
-                <li>Low-to-moderate volatility</li>
-                <li>High liquidity</li>
-                <li>Portfolio manager understands the company deeply</li>
+                <li>Strongest investment thesis</li> <!-- High conviction idea -->
+                <li>High-quality business</li> <!-- Strong fundamentals -->
+                <li>Predictable earnings</li> <!-- Stability -->
+                <li>Clear catalyst</li> <!-- Identifiable upside driver -->
+                <li>Low-to-moderate volatility</li> <!-- Controlled risk -->
+                <li>High liquidity</li> <!-- Easy execution -->
+                <li>Portfolio manager understands the company deeply</li> <!-- Knowledge advantage -->
             </ul>
 
-            <p class="title">The Math Behind a 6% Position</p>
+            <p class="title">The Math Behind a 6% Position</p> <!-- Transition to quantitative logic -->
 
-            <p><strong>1. Expected Return (ER)</strong></p>
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p>
-            <p><strong>How it is applied:</strong> A 6% position usually requires a high expected return, often around 20–40%, because the portfolio manager is allocating meaningful capital to a high-conviction idea.</p>
+            <p><strong>1. Expected Return (ER)</strong></p> <!-- Metric label -->
+            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- Core valuation formula -->
+            <p><strong>How it is applied:</strong> A high weight requires high expected return.</p> <!-- Interpretation -->
 
             <p><strong>2. Risk-Adjusted Return (RAR)</strong></p>
-            <p><strong>Formula:</strong> RAR = ER / σ</p>
-            <p><strong>How it is applied:</strong> σ represents stock volatility. A stock can only justify a 6% weight if return is attractive relative to risk, not just attractive in absolute terms.</p>
+            <p><strong>Formula:</strong> RAR = ER / σ</p> <!-- σ = volatility -->
+            <p><strong>How it is applied:</strong> Return must justify volatility.</p>
 
             <p><strong>3. Correlation to Portfolio</strong></p>
-            <p><strong>Formula:</strong> Marginal Risk = w · σ · ρ</p>
-            <p><strong>How it is applied:</strong> w is position weight and ρ is correlation to the portfolio. Even a strong stock should not receive a 6% weight if it pushes portfolio risk too high.</p>
+            <p><strong>Formula:</strong> Marginal Risk = w · σ · ρ</p> <!-- w=weight, ρ=correlation -->
+            <p><strong>How it is applied:</strong> Avoid concentration risk.</p>
 
             <p><strong>4. Contribution to Portfolio Risk</strong></p>
-            <p><strong>Formula:</strong> Risk Contribution = w · β</p>
-            <p><strong>How it is applied:</strong> A 6% position must still keep the overall portfolio beta near target, for example around 1.0, so the holding does not distort the mandate.</p>
+            <p><strong>Formula:</strong> Risk Contribution = w · β</p> <!-- β = sensitivity to market -->
+            <p><strong>How it is applied:</strong> Keeps portfolio beta stable.</p>
         </div>
 
-        <button type="button" class="accordion">3.5% Position – Core Holding</button>
+        <!-- Repeatable accordion structure -->
+        <button type="button" class="accordion">3.5% Position – Core Holding</button> <!-- Medium conviction -->
         <div class="panel">
             <p class="title">Qualitative Criteria</p>
             <ul>
@@ -77,221 +89,114 @@
 
             <p class="title">The Math Behind a 3.5% Position</p>
 
-            <p><strong>1. Moderate Expected Return</strong></p>
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p>
-            <p><strong>How it is applied:</strong> A core holding usually has a moderate expected return, often around 10–20%, rather than the very high return required for a top conviction position.</p>
-
-            <p><strong>2. Lower Volatility</strong></p>
-            <p><strong>Formula:</strong> σ &lt; Portfolio Average</p>
-            <p><strong>How it is applied:</strong> A core holding should usually be less volatile than the more aggressive names in the portfolio, supporting stability and consistency.</p>
-
-            <p><strong>3. Correlation / Portfolio Risk Alignment</strong></p>
-            <p><strong>Formula:</strong> Correlation = ρ</p>
-            <p><strong>How it is applied:</strong> If the stock is highly correlated with the rest of the portfolio, the manager may keep the weight smaller to avoid concentration of the same risk factor.</p>
-
-            <p><strong>4. Balanced Risk Contribution</strong></p>
-            <p><strong>Formula:</strong> Risk Contribution ≈ 3%–5% of total portfolio risk</p>
-            <p><strong>How it is applied:</strong> A 3.5% holding should contribute to portfolio returns without becoming one of the dominant sources of risk.</p>
+            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- Expected return formula reused -->
+            <p><strong>Formula:</strong> σ &lt; Portfolio Average</p> <!-- Lower volatility requirement -->
+            <p><strong>Formula:</strong> Correlation = ρ</p> <!-- Diversification metric -->
+            <p><strong>Formula:</strong> Risk Contribution ≈ 3–5%</p> <!-- Controlled risk share -->
         </div>
 
-        <button type="button" class="accordion">3% Position – Satellite / Diversifier</button>
+        <button type="button" class="accordion">3% Position – Satellite / Diversifier</button> <!-- Diversification role -->
         <div class="panel">
             <p class="title">Qualitative Criteria</p>
             <ul>
-                <li>Adds sector or geographic diversification</li>
+                <li>Adds diversification</li>
                 <li>Higher uncertainty</li>
                 <li>Smaller company</li>
                 <li>Thematic exposure</li>
             </ul>
 
-            <p class="title">The Math Behind a 3% Position</p>
-
-            <p><strong>1. Higher Volatility</strong></p>
-            <p><strong>Formula:</strong> σ &gt; Portfolio Average</p>
-            <p><strong>How it is applied:</strong> Because volatility is above average, the weight is reduced so the position can still be included without dominating risk.</p>
-
-            <p><strong>2. Lower Expected Return Certainty</strong></p>
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p>
-            <p><strong>How it is applied:</strong> Expected return may still be attractive, but confidence in the estimate is lower, so the portfolio manager allocates less capital.</p>
-
-            <p><strong>3. Diversification Benefit</strong></p>
-            <p><strong>Formula:</strong> ρ &lt; 0.5</p>
-            <p><strong>How it is applied:</strong> A portfolio manager may still accept a 3% position in a volatile stock if its correlation with the rest of the portfolio is low and it improves diversification.</p>
-
-            <p><strong>4. Controlled Risk Contribution</strong></p>
-            <p><strong>Formula:</strong> Risk Contribution ≈ 2%–3%</p>
-            <p><strong>How it is applied:</strong> The position should help diversify the portfolio while keeping its share of total portfolio risk contained.</p>
+            <p><strong>Formula:</strong> σ &gt; Portfolio Average</p> <!-- Higher risk tolerated -->
+            <p><strong>Formula:</strong> ρ &lt; 0.5</p> <!-- Low correlation benefit -->
+            <p><strong>Formula:</strong> Risk Contribution ≈ 2–3%</p> <!-- Limited impact -->
         </div>
 
-        <button type="button" class="accordion">1–2% Position – High Risk / Exploratory</button>
+        <button type="button" class="accordion">1–2% Position – High Risk / Exploratory</button> <!-- Speculative allocation -->
         <div class="panel">
-            <p class="title">Qualitative Criteria</p>
             <ul>
                 <li>Very high volatility</li>
-                <li>Early-stage company</li>
                 <li>Unproven thesis</li>
                 <li>Illiquid</li>
-                <li>Portfolio manager wants exposure but limited risk</li>
             </ul>
 
-            <p class="title">The Math Behind a 1–2% Position</p>
-
-            <p><strong>1. Very High Volatility</strong></p>
-            <p><strong>Formula:</strong> σ ≫ Portfolio Average</p>
-            <p><strong>How it is applied:</strong> The position size is kept very small because the stock’s risk is much higher than the overall portfolio average.</p>
-
-            <p><strong>2. High Beta</strong></p>
-            <p><strong>Formula:</strong> β &gt; 1.3</p>
-            <p><strong>How it is applied:</strong> A high-beta stock is more sensitive to market moves, so a smaller weight protects the portfolio from excessive swings.</p>
-
-            <p><strong>3. High Uncertainty in Expected Return</strong></p>
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p>
-            <p><strong>How it is applied:</strong> Even if upside looks attractive, uncertainty around that estimate means the manager reduces position size to control downside risk.</p>
-
-            <p><strong>4. Minimal Risk Contribution</strong></p>
-            <p><strong>Formula:</strong> Risk Contribution &lt; 1%</p>
-            <p><strong>How it is applied:</strong> Exploratory positions are designed to give exposure while ensuring that, if wrong, they do not materially damage the full portfolio.</p>
+            <p><strong>Formula:</strong> σ ≫ Portfolio Average</p> <!-- Very high volatility -->
+            <p><strong>Formula:</strong> β &gt; 1.3</p> <!-- High market sensitivity -->
+            <p><strong>Formula:</strong> Risk Contribution &lt; 1%</p> <!-- Minimal risk share -->
         </div>
 
-        <button type="button" class="accordion">Cash (5%) – Risk Control</button>
+        <button type="button" class="accordion">Cash (5%) – Risk Control</button> <!-- Defensive allocation -->
         <div class="panel">
-            <p class="title">Qualitative Criteria</p>
             <ul>
                 <li>Flexibility</li>
                 <li>Lower volatility</li>
-                <li>Dry powder for opportunities</li>
+                <li>Dry powder</li>
             </ul>
 
-            <p class="title">The Math Behind Cash Allocation</p>
-
-            <p><strong>1. Reduce Portfolio Volatility</strong></p>
-            <p><strong>Formula:</strong> σ<sub>portfolio</sub> = Σw<sub>i</sub><sup>2</sup>σ<sub>i</sub><sup>2</sup> + 2Σw<sub>i</sub>w<sub>j</sub>σ<sub>i</sub>σ<sub>j</sub>ρ<sub>ij</sub></p>
-            <p><strong>How it is applied:</strong> Cash has σ = 0 and ρ = 0, so allocating part of the portfolio to cash reduces total portfolio volatility mathematically.</p>
-
-            <p><strong>2. Reduce Drawdowns</strong></p>
-            <p><strong>Formula:</strong> Cash lowers portfolio sensitivity to market declines</p>
-            <p><strong>How it is applied:</strong> Because part of the portfolio is not exposed to risky assets, maximum drawdowns are smaller during stressed markets.</p>
-
-            <p><strong>3. Optionality Value</strong></p>
-            <p><strong>Formula:</strong> Cash provides immediate deployable capital</p>
-            <p><strong>How it is applied:</strong> Holding cash allows the portfolio manager to buy attractive assets when volatility spikes or when markets dislocate.</p>
+            <p><strong>Formula:</strong> σ_portfolio = Σw²σ² + 2Σwᵢwⱼσᵢσⱼρᵢⱼ</p> <!-- Portfolio variance formula -->
+            <p><strong>How it is applied:</strong> Cash reduces volatility as σ=0.</p>
         </div>
     </div>
 
-    <div class="card">
-        <h2>Analyse a Ticker</h2>
+    <!-- ========================= -->
+    <!-- FORM SECTION -->
+    <!-- ========================= -->
 
-        <form id="analyze-form" method="post" action="/analyze">
-            <label for="portfolio_key">Select Portfolio</label>
-            <select name="portfolio_key" id="portfolio_key" required>
-                {% for portfolio in portfolio_choices %}
-                <option value="{{ portfolio.key }}" {% if portfolio.key == default_portfolio_key %}selected{% endif %}>
-                    {{ portfolio.name }}
+    <div class="card">
+        <h2>Analyse a Ticker</h2> <!-- Section heading -->
+
+        <form id="analyze-form" method="post" action="/analyze"> <!-- Sends data to Flask route /analyze -->
+            
+            <label for="portfolio_key">Select Portfolio</label> <!-- Label for dropdown -->
+            <select name="portfolio_key" id="portfolio_key" required> <!-- Required dropdown -->
+                {% for portfolio in portfolio_choices %} <!-- Jinja loop over portfolios -->
+                <option value="{{ portfolio.key }}" {% if portfolio.key == default_portfolio_key %}selected{% endif %}> <!-- Sets default selection -->
+                    {{ portfolio.name }} <!-- Display portfolio name -->
                 </option>
                 {% endfor %}
             </select>
 
-            <label for="ticker">Select a ticker</label>
-            <select name="ticker" id="ticker" required>
-                <option value="">-- Choose a stock --</option>
-                <option value="IEF">IEF – US Treasury ETF</option>
-                <option value="SHY">SHY – Short-Term Treasury</option>
-                <option value="AGG">AGG – US Aggregate Bond</option>
-                <option value="BND">BND – Total Bond Market</option>
-                <option value="TIP">TIP – Treasury Inflation-Protected</option>
-                <option value="AAPL">AAPL – Apple</option>
+            <label for="ticker">Select a ticker</label> <!-- Label -->
+            <select name="ticker" id="ticker" required> <!-- Dropdown for assets -->
+                <option value="">-- Choose a stock --</option> <!-- Default placeholder -->
+                <option value="AAPL">AAPL – Apple</option> <!-- Hardcoded ticker -->
                 <option value="MSFT">MSFT – Microsoft</option>
-                <option value="AMZN">AMZN – Amazon</option>
-                <option value="GOOGL">GOOGL – Alphabet</option>
-                <option value="META">META – Meta Platforms</option>
-                <option value="TSLA">TSLA – Tesla</option>
                 <option value="NVDA">NVDA – Nvidia</option>
-                <option value="GLD">GLD – Gold ETF</option>
-                <option value="XLP">XLP – Consumer Staples</option>
-                <option value="XLV">XLV – Healthcare</option>
-                <option value="XLU">XLU – Utilities</option>
             </select>
 
-            <button type="submit">Analyze</button>
+            <button type="submit">Analyze</button> <!-- Submits form to Flask backend -->
         </form>
     </div>
 
-    <div id="result-box">
-        <h2 id="result-ticker">Select a stock to analyze</h2>
+    <!-- ========================= -->
+    <!-- RESULTS SECTION -->
+    <!-- ========================= -->
 
-        <p><strong>Portfolio:</strong> <span id="portfolio-name">{{ default_portfolio_name }}</span></p>
-        <p><strong>Beta vs Benchmark:</strong> <span id="beta-value">—</span></p>
-        <p><strong>Score:</strong> <span id="score-value">—</span></p>
-        <p><strong>Decision:</strong> <span id="decision-value">—</span></p>
-        <p><strong>Recommended Weight:</strong> <span id="weight-value">—</span></p>
-        <p><strong>Sector:</strong> <span id="sector-value">—</span></p>
-        <p><strong>Industry:</strong> <span id="industry-value">—</span></p>
-        <p><strong>Tag:</strong> <span id="tag-value">—</span></p>
+    <div id="result-box"> <!-- Dynamic result container updated via JS -->
+        <h2 id="result-ticker">Select a stock to analyze</h2> <!-- Placeholder title -->
 
-        <hr>
+        <p><strong>Portfolio:</strong> <span id="portfolio-name">{{ default_portfolio_name }}</span></p> <!-- Injected default portfolio -->
+        <p><strong>Beta:</strong> <span id="beta-value">—</span></p> <!-- JS updates value -->
+        <p><strong>Score:</strong> <span id="score-value">—</span></p> <!-- Scoring metric -->
+        <p><strong>Decision:</strong> <span id="decision-value">—</span></p> <!-- Buy / Hold / Reject -->
+        <p><strong>Weight:</strong> <span id="weight-value">—</span></p> <!-- Suggested allocation -->
 
-        <h3>1-Year Historical Analysis</h3>
-        <p><strong>Annualised Expected Return:</strong> <span id="1y-er-value">N/A</span></p>
-        <p><strong>Annualised Volatility:</strong> <span id="1y-vol-value">N/A</span></p>
-        <p><strong>Sharpe-like:</strong> <span id="1y-sharpe-value">N/A</span></p>
-        <p><strong>Latest Price:</strong> <span id="1y-latest-price-value">N/A</span></p>
-        <p><strong>Price Data Start:</strong> <span id="1y-price-start-value">N/A</span></p>
-        <p><strong>Price Data End:</strong> <span id="1y-price-end-value">N/A</span></p>
-        <p><strong>Price Observations:</strong> <span id="1y-price-obs-value">N/A</span></p>
-        <p><strong>Return Series Start:</strong> <span id="1y-return-start-value">N/A</span></p>
-        <p><strong>Return Series End:</strong> <span id="1y-return-end-value">N/A</span></p>
-        <p><strong>Return Observations:</strong> <span id="1y-return-obs-value">N/A</span></p>
-
-        <h4>1-Year Forecast for Next Year (Quarterly)</h4>
-        <p><strong>Quarterly Expected Return:</strong> <span id="1y-quarterly-return-value">N/A</span></p>
-        <p><strong>Q1 Expected Price:</strong> <span id="1y-q1-price-value">N/A</span></p>
-        <p><strong>Q2 Expected Price:</strong> <span id="1y-q2-price-value">N/A</span></p>
-        <p><strong>Q3 Expected Price:</strong> <span id="1y-q3-price-value">N/A</span></p>
-        <p><strong>Q4 Expected Price:</strong> <span id="1y-q4-price-value">N/A</span></p>
-
-        <hr>
-
-        <h3>3-Month Historical Analysis</h3>
-        <p><strong>Annualised Expected Return:</strong> <span id="3m-er-value">N/A</span></p>
-        <p><strong>Annualised Volatility:</strong> <span id="3m-vol-value">N/A</span></p>
-        <p><strong>Sharpe-like:</strong> <span id="3m-sharpe-value">N/A</span></p>
-        <p><strong>Latest Price:</strong> <span id="3m-latest-price-value">N/A</span></p>
-        <p><strong>Price Data Start:</strong> <span id="3m-price-start-value">N/A</span></p>
-        <p><strong>Price Data End:</strong> <span id="3m-price-end-value">N/A</span></p>
-        <p><strong>Price Observations:</strong> <span id="3m-price-obs-value">N/A</span></p>
-        <p><strong>Return Series Start:</strong> <span id="3m-return-start-value">N/A</span></p>
-        <p><strong>Return Series End:</strong> <span id="3m-return-end-value">N/A</span></p>
-        <p><strong>Return Observations:</strong> <span id="3m-return-obs-value">N/A</span></p>
-
-        <h4>3-Month Based Forecast for Next Year (Quarterly)</h4>
-        <p><strong>Quarterly Expected Return:</strong> <span id="3m-quarterly-return-value">N/A</span></p>
-        <p><strong>Q1 Expected Price:</strong> <span id="3m-q1-price-value">N/A</span></p>
-        <p><strong>Q2 Expected Price:</strong> <span id="3m-q2-price-value">N/A</span></p>
-        <p><strong>Q3 Expected Price:</strong> <span id="3m-q3-price-value">N/A</span></p>
-        <p><strong>Q4 Expected Price:</strong> <span id="3m-q4-price-value">N/A</span></p>
-
-        <hr>
-
-        <h3>Benchmark Information</h3>
-        <p><strong>Benchmark Ticker:</strong> <span id="benchmark-ticker-value">N/A</span></p>
-        <p><strong>Benchmark Return Start:</strong> <span id="benchmark-start-value">N/A</span></p>
-        <p><strong>Benchmark Return End:</strong> <span id="benchmark-end-value">N/A</span></p>
-        <p><strong>Beta Observations Used:</strong> <span id="beta-obs-value">N/A</span></p>
-
-        <div class="action-row">
-            <button type="button" id="add-to-portfolio-btn" disabled>Add / Update Portfolio</button>
+        <div class="action-row"> <!-- Button container -->
+            <button type="button" id="add-to-portfolio-btn" disabled>Add / Update Portfolio</button> <!-- Disabled until analysis complete -->
         </div>
 
-        <div id="trade-message" class="trade-message"></div>
+        <div id="trade-message" class="trade-message"></div> <!-- Displays backend response -->
     </div>
 
+    <!-- ========================= -->
+    <!-- PORTFOLIO HOLDINGS -->
+    <!-- ========================= -->
+
     <div class="card">
-        <h2>Current Portfolio Holdings</h2>
-        <div id="portfolio-groups"></div>
+        <h2>Current Portfolio Holdings</h2> <!-- Section heading -->
+        <div id="portfolio-groups"></div> <!-- JS dynamically injects holdings -->
     </div>
 
 </div>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links JS file for interactivity (accordion, fetch, DOM updates) -->
 </body>
 </html>
