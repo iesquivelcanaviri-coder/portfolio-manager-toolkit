@@ -255,6 +255,7 @@ document.addEventListener("DOMContentLoaded", function () { // Waits until the f
                 `; 
                 panel.appendChild(table); // Adds the completed holdings table inside the panel
             } 
+
             container.appendChild(button); // Inserts the accordion button into the portfolio groups container
             container.appendChild(panel); // Inserts the panel immediately after the button so the accordion logic can find it using nextElementSibling
             attachAccordion(button); // Activates accordion behaviour on the new button that was created dynamically with JavaScript
