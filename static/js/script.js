@@ -227,32 +227,32 @@ document.addEventListener("DOMContentLoaded", function () { // Waits until the f
                 const table = document.createElement("table"); // Creates a table element to display the stored positions
                 table.className = "table";  // Assigns the shared table class so the holdings table uses the site's table styling
 
-                table.innerHTML = ` // Inserts the full table HTML using a template literal because rows are built dynamically from the stocks array
-                    <thead> // Starts the table header section
-                        <tr> // Starts the header row
-                            <th>Ticker</th> // Header for ticker symbol
-                            <th>Recommended Weight</th> // Header for recommended weight
-                            <th>Decision</th> // Header for decision label
-                            <th>Tag</th> // Header for decision tag
-                            <th>Sector</th> // Header for sector
-                            <th>Industry</th> // Header for industry
-                            <th>Beta</th> // Header for beta
-                        </tr> // Ends header row
-                    </thead> // Ends table header section
-                    <tbody> // Starts table body section
-                        ${data.stocks.map(stock => ` // Maps each stored stock object into one table row string, then joins them into a single HTML block
-                            <tr> // Starts one row for one stored stock
-                                <td>${stock.ticker}</td> // Displays the stored ticker symbol
-                                <td>${stock.recommended_weight}</td> // Displays the stored recommended weight
-                                <td>${stock.decision}</td> // Displays the stored decision
-                                <td>${stock.tag}</td> // Displays the stored tag
-                                <td>${stock.sector || "Unknown"}</td> // Displays sector, or "Unknown" if missing
-                                <td>${stock.industry || "Unknown"}</td> // Displays industry, or "Unknown" if missing
-                                <td>${stock.beta !== null && stock.beta !== undefined ? Number(stock.beta).toFixed(2) : "N/A"}</td> // Displays beta to 2 decimal places if it exists, otherwise shows N/A
-                            </tr> // Ends one stock row
-                        `).join("")} // Converts all row strings into one continuous HTML string with no commas in between
-                    </tbody> // Ends table body section
-                `; 
+                table.innerHTML = `
+                    <thead>
+                        <tr>
+                            <th>Ticker</th>
+                            <th>Recommended Weight</th>
+                            <th>Decision</th>
+                            <th>Tag</th>
+                            <th>Sector</th>
+                            <th>Industry</th>
+                            <th>Beta</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.stocks.map(stock => `
+                            <tr>
+                                <td>${stock.ticker}</td>
+                                <td>${stock.recommended_weight}</td>
+                                <td>${stock.decision}</td>
+                                <td>${stock.tag}</td>
+                                <td>${stock.sector || "Unknown"}</td>
+                                <td>${stock.industry || "Unknown"}</td>
+                                <td>${stock.beta !== null && stock.beta !== undefined ? Number(stock.beta).toFixed(2) : "N/A"}</td>
+                            </tr>
+                        `).join("")}
+                    </tbody>
+                `;
                 panel.appendChild(table); // Adds the completed holdings table inside the panel
             } 
 
