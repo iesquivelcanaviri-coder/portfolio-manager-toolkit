@@ -165,46 +165,47 @@
                 </tr> 
             </thead> 
 
-            <tbody> <!-- Starts the table body section where the actual market rows are printed -->
-                {% for row in rows %} <!-- Jinja loop that goes through every row object passed from Flask into the template -->
-                <tr <!-- Opens one table row for a single security -->
-                    data-ticker="{{ row.ticker }}" <!-- Stores ticker as a custom HTML data attribute so JavaScript can read it directly for filtering without scraping table text -->
-                    data-sector="{{ row.sector }}" <!-- Stores sector for filtering -->
-                    data-decision="{{ row.decision }}" <!-- Stores decision label for filtering -->
-                    data-score="{{ row.score if row.score is not none else '' }}" <!-- Stores score; if value is missing, stores an empty string so JavaScript does not break on null -->
-                    data-beta="{{ row.beta if row.beta is not none else '' }}" <!-- Stores beta safely with fallback -->
-                    data-pe="{{ row.pe_ratio if row.pe_ratio is not none else '' }}" <!-- Stores P/E safely with fallback -->
-                    data-volatility="{{ row.volatility if row.volatility is not none else '' }}" <!-- Stores volatility safely with fallback -->
-                    data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}" <!-- Stores Sharpe-like safely with fallback -->
-                    data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}" <!-- Stores ranking score safely with fallback -->
-                    data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}" <!-- Stores boolean flag as text because HTML data attributes store strings, not real booleans -->
-                    data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}" <!-- Stores low-risk preset flag -->
-                    data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}" <!-- Stores high-conviction preset flag -->
-                    data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}" <!-- Stores core holding preset flag -->
-                    data-satellite="{{ 'true' if row.is_satellite else 'false' }}" <!-- Stores satellite preset flag -->
-                    data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}" <!-- Stores exploratory preset flag -->
-                    data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}" <!-- Stores cash preset flag -->
-                    data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}" <!-- Stores best-ranked preset flag -->
-                    class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}" <!-- Dynamically assigns a CSS class based on score bands so strong rows can be visually highlighted -->
-                > <!-- Closes the opening table-row tag -->
-                    <td>{{ row.ticker }}</td> <!-- Prints the ticker symbol in the first visible cell -->
-                    <td>{{ row.sector }}</td> <!-- Prints the sector -->
-                    <td>{{ row.industry }}</td> <!-- Prints the industry -->
-                    <td>{{ row.market_cap_display }}</td> <!-- Prints formatted market cap text rather than raw large number -->
-                    <td>{{ row.beta if row.beta is not none else "N/A" }}</td> <!-- Prints beta if available, otherwise prints N/A for missing data -->
-                    <td>{{ row.pe_ratio if row.pe_ratio is not none else "N/A" }}</td> <!-- Prints P/E or N/A -->
-                    <td>{{ row.dividend_yield if row.dividend_yield is not none else "N/A" }}{% if row.dividend_yield is not none %}%{% endif %}</td> <!-- Prints dividend yield and conditionally adds a percent sign only when a real numeric value exists -->
-                    <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td> <!-- Prints expected return and conditionally adds percent sign -->
-                    <td>{{ row.score if row.score is not none else "N/A" }}</td> <!-- Prints score or N/A -->
-                    <td>{{ row.decision }}</td> <!-- Prints investment decision text -->
-                    <td><span class="tag">{{ row.tag }}</span></td> <!-- Wraps the tag inside a span with CSS class "tag" so it can be styled like a pill or badge -->
-                    <td>{{ row.suggested_weight }}</td> <!-- Prints suggested portfolio weight -->
-                    <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td> <!-- Prints volatility and conditionally adds percent sign -->
-                    <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td> <!-- Prints Sharpe-like value or N/A -->
-                    <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td> <!-- Prints ranking score or N/A -->
-                </tr> 
-                {% endfor %} 
-            </tbody> 
+            <tbody>
+                {% for row in rows %}
+                <!-- Each row stores custom data attributes for JavaScript filtering -->
+                <tr
+                    data-ticker="{{ row.ticker }}"
+                    data-sector="{{ row.sector }}"
+                    data-decision="{{ row.decision }}"
+                    data-score="{{ row.score if row.score is not none else '' }}"
+                    data-beta="{{ row.beta if row.beta is not none else '' }}"
+                    data-pe="{{ row.pe_ratio if row.pe_ratio is not none else '' }}"
+                    data-volatility="{{ row.volatility if row.volatility is not none else '' }}"
+                    data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}"
+                    data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}"
+                    data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}"
+                    data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}"
+                    data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}"
+                    data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}"
+                    data-satellite="{{ 'true' if row.is_satellite else 'false' }}"
+                    data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}"
+                    data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}"
+                    data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}"
+                    class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}"
+                >
+                    <td>{{ row.ticker }}</td>
+                    <td>{{ row.sector }}</td>
+                    <td>{{ row.industry }}</td>
+                    <td>{{ row.market_cap_display }}</td>
+                    <td>{{ row.beta if row.beta is not none else "N/A" }}</td>
+                    <td>{{ row.pe_ratio if row.pe_ratio is not none else "N/A" }}</td>
+                    <td>{{ row.dividend_yield if row.dividend_yield is not none else "N/A" }}{% if row.dividend_yield is not none %}%{% endif %}</td>
+                    <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td>
+                    <td>{{ row.score if row.score is not none else "N/A" }}</td>
+                    <td>{{ row.decision }}</td>
+                    <td><span class="tag">{{ row.tag }}</span></td>
+                    <td>{{ row.suggested_weight }}</td>
+                    <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td>
+                    <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td>
+                    <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
         </table> 
     </div> 
 
