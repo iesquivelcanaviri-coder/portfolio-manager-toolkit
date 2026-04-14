@@ -1,521 +1,216 @@
-# ============================================================  
-# IMPORTS  # Section title showing all imported libraries and Flask tools
-# ============================================================  
+<!DOCTYPE html> 
+<html lang="en">
 
-from flask import Flask, render_template, request, jsonify  # Imports Flask app object plus render_template for HTML pages, request for form/JSON data, and jsonify for API responses
-import yfinance as yf  # Imports yfinance and gives it the short name yf so Yahoo Finance data can be downloaded more easily
-import numpy as np  # Imports NumPy and gives it the short name np so mathematical functions like square root can be used
-import re  # Imports Python's regular expressions module so text like "3.5%" can be cleaned and parsed
-import time  # Imports time module so dashboard results can be cached for a number of seconds
+<!-- ========================================================= --> 
+<!-- HEAD SECTION (Metadata + CSS) --> <!-- Label for the head section so it is easier to understand the structure of the file when reviewing or editing -->
+<!-- ========================================================= --> 
 
-app = Flask(__name__)  # Creates the Flask application instance; __name__ tells Flask where this file is located
+<head> <!-- Starts the head section, which stores metadata, the page title, and links to external files like CSS; content here is not shown directly on the page -->
+    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 so letters, punctuation, symbols, and special characters display correctly; this is especially important because your file includes characters like em dashes and percent symbols -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the layout responsive by telling mobile browsers to match the page width to the device width and use a normal zoom level -->
+    <title>Market Dashboard</title> <!-- Sets the text shown in the browser tab and helps users identify the page when multiple tabs are open -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links the external CSS file; Flask's Jinja expression url_for('static', ...) dynamically generates the correct path to the stylesheet, which is safer than hardcoding a file path -->
+</head> 
 
-# ============================================================  
-# GLOBAL STORAGE  # Section title for variables stored in memory while the app is running
-# ============================================================  
+<!-- ========================================================= -->
+<!-- BODY SECTION (Visible Page Content) --> <!-- Label explaining that the next section contains all content visible to the user -->
+<!-- ========================================================= -->
 
-selected_stocks = {  # Dictionary used to store the stocks added by the user for each portfolio scenario
-    "scenario1": [],  # Empty list for holdings added to portfolio scenario 1
-    "scenario2": [],  # Empty list for holdings added to portfolio scenario 2
-    "scenario3": [],  # Empty list for holdings added to portfolio scenario 3
-    "scenario4": [],  # Empty list for holdings added to portfolio scenario 4
-    "scenario5": [],  # Empty list for holdings added to portfolio scenario 5
-}  
+<body> <!-- Starts the body section, which contains everything the user actually sees on the page -->
+<div class="container"> <!-- Main layout wrapper; the "container" CSS class usually controls width, spacing, and page alignment so all content stays neatly centered and consistent -->
 
-dashboard_cache = {  # Dictionary used to cache market dashboard output so it does not rebuild on every page load
-    "rows": None,  # Stores the cached dashboard rows; starts as None because nothing has been built yet
-    "timestamp": 0  # Stores the time when the cache was last updated; starts at 0
-}  
+    {% set active_page = 'market_dashboard' %} <!-- Jinja line that creates a variable called active_page and sets it to this page name; the navbar template uses this variable to highlight the current page link -->
+    {% include '_navbar.html' %} <!-- Jinja include that inserts the reusable navbar file here; this avoids repeating the same navigation code on every page -->
 
-DASHBOARD_CACHE_SECONDS = 300  # Cache duration in seconds; 300 seconds equals 5 minutes
+    <h1>Market Dashboard</h1> <!-- Main page heading; h1 is the top-level heading and tells both users and search engines what the page is mainly about -->
 
-# ============================================================  
-# PORTFOLIO CONFIGURATION  # Section title for all predefined portfolio scenarios
-# ============================================================  
+    <!-- ========================================================= -->
+    <!-- DASHBOARD EXPLANATION SECTION --> <!-- Label explaining that this section introduces the dashboard and explains how it should be used -->
+    <!-- ========================================================= -->
 
-PORTFOLIO_1 = {  # Dictionary defining the first client portfolio
-    "client_id": "portfolio_1_conservative_retiree",  # Unique internal ID for this portfolio
-    "identity": {  # Nested dictionary containing client identity details
-        "name": "Marie-Claire Dubois",  # Client full name
-        "date_of_birth": "1958-03-12",  # Client date of birth
-        "nationality": "French",  # Client nationality
-        "tax_residency": "France",  # Country where the client is tax resident
-        "address": "Lyon, France",  # Client location/address summary
-        "identification": "French passport",  # Main ID document used for KYC
-    },  
-    "compliance": {  # Nested dictionary for compliance and onboarding details
-        "kyc": "Completed",  # Know Your Customer check status
-        "aml": "No red flags",  # Anti-money laundering screening result
-        "source_of_wealth": "Pension and inheritance",  # Where the client’s wealth came from
-        "source_of_funds": "Retirement savings",  # Where the invested money specifically came from
-        "fatca_crs": "CRS only",  # Tax reporting classification
-        "pep": False,  # Politically exposed person flag; False means no
-    },  
-    "objectives": {  # Nested dictionary for investment goals
-        "goals": "Capital preservation and stable income",  # Main investment objective
-        "time_horizon_years": "5-7",  # Time horizon in years
-        "expected_return_percent": "2-3",  # Expected return range in percentage terms
-        "benchmark": "Eurozone government bond index",  # Benchmark used for comparison
-    },  
-    "risk_profile": {  # Nested dictionary describing client risk profile
-        "risk_tolerance": "Conservative",  # Client willingness to accept risk
-        "risk_capacity": "Low",  # Client ability to absorb losses
-        "max_drawdown_percent": -8,  # Maximum acceptable portfolio decline
-    },  
-    "financials": {  # Nested dictionary for financial situation
-        "net_worth": 850000,  # Total net worth
-        "investments": 500000,  # Amount already invested or available for investment
-        "real_estate": "Primary residence",  # Property situation
-        "liabilities": 0,  # Total liabilities
-        "income_monthly": 2200,  # Monthly income
-        "expenses_monthly": 1800,  # Monthly expenses
-        "liquidity_needs_monthly": 3000,  # Monthly cash need requirement
-    },  
-    "constraints": {  # Nested dictionary for mandate restrictions
-        "legal": "UCITS-compliant",  # Legal restriction or framework
-        "esg": "No tobacco",  # ESG restriction
-        "max_equity_allocation_percent": 20,  # Maximum equity exposure allowed
-        "currency": "EUR only",  # Allowed currency exposure
-    },  
-    "preferences": {  # Nested dictionary for client preferences
-        "investment_style": "Income-focused",  # Preferred investment style
-        "products": ["Bond funds", "Money-market funds"],  # Preferred product types
-        "communication": "Monthly, simplified reports",  # Preferred reporting style
-    },  
-    "behavioural": {  # Nested dictionary for behavioural observations
-        "past_reactions": "Panicked during 2020 market crash",  # Historical behaviour in stress periods
-        "decision_style": "Hands-off",  # How involved the client likes to be
-        "biases": ["Loss aversion"],  # Behavioural biases observed
-    },  
-    "mandate": {  # Nested dictionary for formal portfolio management rules
-        "type": "Discretionary",  # Mandate type means manager can act on behalf of client
-        "fees_percent": 0.8,  # Management fee percentage
-        "rebalancing_frequency": "Quarterly",  # How often the portfolio should be rebalanced
-        "ips": "Preserve capital, generate income, minimize volatility",  # Investment policy statement summary
-    },  
-    "portfolio_value": 500000,  # Total portfolio value used in sizing logic
-    "max_weight": 20,  # Absolute maximum weight per position
-    "volatility": 8.0,  # Example portfolio or benchmark volatility input
-    "returns": [0.2, 0.1, 0.15, 0.05, 0.1],  # Example returns list used as embedded scenario data
-    "ticker": "IEF",  # Default benchmark/reference ticker for this portfolio
-}  
+    <div class="card"> <!-- Opens a styled content card; the "card" class is likely defined in CSS to add padding, background, border, or shadow -->
+        <h2>What this dashboard does</h2> <!-- Section heading for the explanatory introduction; h2 is used because it is a subsection under the main page heading -->
+        <p> <!-- Starts a paragraph block used to explain the purpose of the dashboard in normal readable text -->
+            This page helps a portfolio manager screen securities before moving to detailed analysis. <!-- Sentence explaining that the dashboard acts as a first screening stage before deeper research -->
+            It is designed to reduce the list quickly by applying risk, return, valuation, and conviction filters. <!-- Sentence explaining the practical workflow benefit: narrowing a large list of securities using financial decision rules -->
+        </p> 
+        <h3>What each smart preset means</h3> <!-- Subheading introducing the explanations of the filter preset buttons; h3 is used because this belongs inside the broader explanation card -->
+        <p><strong>Low Risk:</strong> highlights more stable securities with lower market sensitivity. Typically includes assets with beta at or below 1 and moderate volatility. These are commonly used for capital preservation, income generation, or defensive positioning within a portfolio.</p> <!-- Paragraph explaining the low-risk preset; the <strong> tag makes the label bold so users can scan the meaning quickly -->
+        <p><strong>High Conviction (6% position):</strong> identifies the strongest investment ideas based on expected return, volatility, and risk-adjusted performance. These are high-confidence opportunities where the manager allocates more capital.</p> <!-- Paragraph explaining that the high-conviction preset is for stronger ideas that justify a larger portfolio weight -->
+        <p><strong>Core Holdings (3.5% position):</strong> represents stable, well-balanced investments that form the foundation of the portfolio.</p> <!-- Paragraph explaining core holdings as the steady central positions that support the main portfolio structure -->
+        <p><strong>Satellite / Diversifiers (3% position):</strong> includes supporting positions used to enhance diversification or gain exposure to specific sectors.</p> <!-- Paragraph explaining satellite holdings as smaller supporting positions rather than the main portfolio anchor -->
+        <p><strong>Exploratory / High Risk (1–2% position):</strong> captures higher-risk opportunities with smaller allocations to control downside risk.</p> <!-- Paragraph explaining why riskier ideas are assigned smaller weights -->
+        <p><strong>Income / Defensive:</strong> focuses on securities providing stability or income such as bonds and defensive sectors.</p> <!-- Paragraph explaining the income and defensive preset, which is useful for lower-risk strategies -->
+        <p><strong>Best Ranked:</strong> highlights securities with strong scores and acceptable risk-adjusted returns.</p> <!-- Paragraph explaining that this preset focuses on the strongest combined scoring results -->
+        <p><strong>Cash (5% allocation):</strong> represents holding cash when no suitable investments are found or to manage risk.</p> <!-- Paragraph explaining that cash is treated as an active portfolio decision rather than doing nothing -->
+    </div> 
 
-PORTFOLIO_2 = {
-    "client_id": "portfolio_2_busy_executive",
-    "identity": {
-        "name": "James O'Connor",
-        "date_of_birth": "1981-07-04",
-        "nationality": "Irish",
-        "tax_residency": "Ireland",
-        "address": "Dublin, Ireland",
-        "identification": "Irish passport",
-    },
-    "compliance": {
-        "kyc": "Completed",
-        "aml": "No issues",
-        "source_of_wealth": "Salary and bonuses",
-        "source_of_funds": "Corporate employment",
-        "fatca_crs": "CRS only",
-        "pep": False,
-    },
-    "objectives": {
-        "goals": "Long-term growth",
-        "time_horizon_years": "15+",
-        "expected_return_percent": "6-8",
-        "benchmark": "MSCI World",
-    },
-    "risk_profile": {
-        "risk_tolerance": "Growth",
-        "risk_capacity": "High",
-        "max_drawdown_percent": -20,
-    },
-    "financials": {
-        "net_worth": 1400000,
-        "investments": 600000,
-        "real_estate": "Home and rental property",
-        "liabilities": 200000,
-        "income_yearly": 180000,
-        "expenses_yearly": 70000,
-        "liquidity_needs": "Low",
-    },
-    "constraints": {
-        "legal": "UCITS",
-        "esg": "Required",
-        "max_stock_weight_percent": 10,
-        "currency": "EUR base, FX allowed",
-    },
-    "preferences": {
-        "investment_style": "Passive",
-        "products": ["ETFs only"],
-        "communication": "Quarterly",
-    },
-    "behavioural": {
-        "past_reactions": "Stayed invested during downturns",
-        "decision_style": "Hands-off",
-        "biases": ["Home bias toward Irish equities"],
-    },
-    "mandate": {
-        "type": "Discretionary",
-        "fees_percent": 0.6,
-        "rebalancing_frequency": "Semi-annual",
-        "ips": "Global equity exposure with ESG screening",
-    },
-    "portfolio_value": 600000,
-    "max_weight": 10,
-    "volatility": 22.0,
-    "returns": [0.6, -0.3, 0.8, 0.4, 0.5],
-    "ticker": "ACWI",
-}
+    <!-- ========================================================= --> 
+    <!-- FILTER SECTION --> <!-- Label showing that the next block contains user input controls for filtering the dashboard -->
+    <!-- ========================================================= --> 
 
-PORTFOLIO_3 = {
-    "client_id": "portfolio_3_corporate_treasury",
-    "identity": {
-        "company_name": "Helvetic Precision Tools SA",
-        "incorporation_year": 2012,
-        "residency": "Geneva, Switzerland",
-        "ownership": "Family-owned",
-        "signatories": ["CFO", "CEO"],
-    },
-    "compliance": {
-        "kyc": "Completed",
-        "aml": "Clean",
-        "source_of_wealth": "Operating profits",
-        "source_of_funds": "Corporate cash reserves",
-        "fatca_crs": "Corporate CRS",
-        "pep": False,
-    },
-    "objectives": {
-        "goals": "Preserve capital and earn yield",
-        "time_horizon_years": "1-3",
-        "expected_return_percent": "1-2",
-        "benchmark": "CHF money-market index",
-    },
-    "risk_profile": {
-        "risk_tolerance": "Very low",
-        "risk_capacity": "Medium",
-        "max_drawdown_percent": -3,
-    },
-    "financials": {
-        "assets_cash": 5000000,
-        "liabilities": 0,
-        "income": "Business revenue",
-        "expenses": "Operational",
-        "liquidity_needs": 1000000,
-    },
-    "constraints": {
-        "legal": "Corporate policy prohibits equities",
-        "esg": "Neutral",
-        "max_issuer_weight_percent": 5,
-        "currency": "CHF only",
-    },
-    "preferences": {
-        "investment_style": "Capital protection",
-        "products": ["Money-market funds", "Short-duration bonds"],
-        "communication": "Monthly, detailed",
-    },
-    "behavioural": {
-        "past_reactions": "CFO is extremely risk-averse",
-        "decision_style": "Very involved",
-        "biases": ["Cash bias"],
-    },
-    "mandate": {
-        "type": "Advisory",
-        "fees_percent": 0.4,
-        "rebalancing_frequency": "Monthly liquidity checks",
-        "ips": "No equities, short-duration fixed income only",
-    },
-    "portfolio_value": 5000000,
-    "max_weight": 5,
-    "volatility": 3.0,
-    "returns": [0.05, 0.03, 0.04, 0.02, 0.03],
-    "ticker": "SHY",
-}
+    <div class="card"> <!-- Opens the filter card that groups all filtering tools into one styled box -->
+        <h2>Smart Filters</h2> <!-- Section heading for the filter controls -->
 
-PORTFOLIO_4 = {
-    "client_id": "portfolio_4_international_entrepreneur",
-    "identity": {
-        "name": "Alejandro Torres",
-        "date_of_birth": "1986-11-22",
-        "nationality": "Spanish",
-        "residency": "Dubai",
-        "identification": "Spanish passport",
-    },
-    "compliance": {
-        "kyc": "Completed",
-        "aml": "No issues",
-        "source_of_wealth": "Tech company founder",
-        "source_of_funds": "Business sale and dividends",
-        "fatca_crs": "CRS",
-        "pep": False,
-    },
-    "objectives": {
-        "goals": "Growth and diversification",
-        "time_horizon_years": "10+",
-        "expected_return_percent": "8-12",
-        "benchmark": "MSCI ACWI",
-    },
-    "risk_profile": {
-        "risk_tolerance": "Aggressive",
-        "risk_capacity": "Very high",
-        "max_drawdown_percent": -30,
-    },
-    "financials": {
-        "net_worth": 12000000,
-        "investments": 4000000,
-        "real_estate": "Three properties",
-        "liabilities": 0,
-        "income": "Irregular business income",
-        "expenses_yearly": 200000,
-        "liquidity_needs": "Medium",
-    },
-    "constraints": {
-        "legal": "None",
-        "esg": "Prefers clean energy",
-        "concentration": "Avoids competitor industries",
-        "currency": ["USD", "EUR", "CHF"],
-    },
-    "preferences": {
-        "investment_style": "Thematic and opportunistic",
-        "products": ["Direct equities", "Thematic ETFs"],
-        "communication": "Weekly",
-    },
-    "behavioural": {
-        "past_reactions": "Buys aggressively during market dips",
-        "decision_style": "Collaborative",
-        "biases": ["Overconfidence"],
-    },
-    "mandate": {
-        "type": "Advisory",
-        "fees_percent": 1.0,
-        "rebalancing_frequency": "Opportunistic",
-        "ips": "High-growth, multi-currency, thematic focus",
-    },
-    "portfolio_value": 4000000,
-    "max_weight": 15,
-    "volatility": 35.0,
-    "returns": [1.2, -0.8, 2.0, -0.5, 1.5],
-    "ticker": "QQQ",
-}
+        <div class="filters-grid"> <!-- Opens a wrapper for the filter controls; the CSS class probably arranges these controls in a grid layout so they line up neatly -->
 
-PORTFOLIO_5 = {
-    "client_id": "portfolio_5_family_office",
-    "identity": {
-        "name": "The Beaumont Family Office",
-        "incorporation_year": 1998,
-        "residency": "London, UK",
-        "ownership": "Multi-generational family",
-        "signatories": ["CIO", "Family council"],
-    },
-    "compliance": {
-        "kyc": "Completed",
-        "aml": "Clean",
-        "source_of_wealth": "Real estate and private equity",
-        "source_of_funds": "Family assets",
-        "fatca_crs": "CRS",
-        "pep": "One family member (low-risk)",
-    },
-    "objectives": {
-        "goals": "Preserve wealth and achieve moderate growth",
-        "time_horizon_years": "30+",
-        "expected_return_percent": "5-7",
-        "benchmark": "40/60 global portfolio",
-    },
-    "risk_profile": {
-        "risk_tolerance": "Balanced",
-        "risk_capacity": "Very high",
-        "max_drawdown_percent": -15,
-    },
-    "financials": {
-        "net_worth": 50000000,
-        "investments": 30000000,
-        "real_estate": 20000000,
-        "liabilities": 0,
-        "income": "Rental income and dividends",
-        "expenses_yearly": 1000000,
-        "liquidity_needs_yearly": 500000,
-    },
-    "constraints": {
-        "legal": "Must include alternatives",
-        "esg": "Required",
-        "max_asset_weight_percent": 10,
-        "currency": "GBP base, global exposure allowed",
-    },
-    "preferences": {
-        "investment_style": "Diversified and institutional",
-        "products": ["Hedge funds", "Private equity", "Real estate", "ETFs"],
-        "communication": "Monthly plus quarterly deep-dive reports",
-    },
-    "behavioural": {
-        "past_reactions": "Calm during crises",
-        "decision_style": "Committee-based",
-        "biases": ["None significant"],
-    },
-    "mandate": {
-        "type": "Discretionary",
-        "fees_percent": 1.2,
-        "rebalancing_frequency": "Quarterly",
-        "ips": "Multi-asset, ESG-aligned, long-term preservation",
-    },
-    "portfolio_value": 30000000,
-    "max_weight": 10,
-    "volatility": 15.0,
-    "returns": [0.4, -0.1, 0.5, 0.3, 0.2],
-    "ticker": "AOR",
-}
+            <div> <!-- Wrapper for the ticker filter so the label and dropdown stay grouped together -->
+                <label for="ticker-filter">Ticker</label> <!-- Label connected to the ticker dropdown through the matching "for" and "id" values, improving accessibility and click behaviour -->
+                <select id="ticker-filter"> <!-- Dropdown input used by JavaScript to filter the table by ticker symbol -->
+                    <option value="">All tickers</option> <!-- Default dropdown option with an empty value, meaning no ticker filter is applied -->
+                    {% for ticker in rows | map(attribute='ticker') | list | sort %} <!-- Jinja loop that reads all tickers from the backend rows data, extracts just the ticker field, converts it to a list, and sorts it alphabetically before output -->
+                    <option value="{{ ticker }}">{{ ticker }}</option> <!-- Creates one dropdown option for each ticker; the value is used in filtering logic and the visible text shows the same ticker to the user -->
+                    {% endfor %} 
+                </select> 
+            </div> 
 
-PORTFOLIOS = {
-    "scenario1": PORTFOLIO_1,
-    "scenario2": PORTFOLIO_2,
-    "scenario3": PORTFOLIO_3,
-    "scenario4": PORTFOLIO_4,
-    "scenario5": PORTFOLIO_5,
-}
+            <div> <!-- Wrapper for the sector filter -->
+                <label for="sector-filter">Sector</label> <!-- Label for the sector dropdown -->
+                <select id="sector-filter"> <!-- Dropdown used to filter table rows by sector -->
+                    <option value="">All sectors</option> <!-- Default option meaning no sector filtering -->
+                    {% for sector in rows | map(attribute='sector') | unique | list | sort %} <!-- Jinja loop that extracts sector values from all rows, removes duplicates using unique, converts to a list, and sorts alphabetically -->
+                    <option value="{{ sector }}">{{ sector }}</option> <!-- Creates one dropdown option per unique sector -->
+                    {% endfor %} 
+                </select> 
+            </div> 
 
+            <div> <!-- Wrapper for the decision filter -->
+                <label for="decision-filter">Decision</label> <!-- Label for the decision dropdown -->
+                <select id="decision-filter"> <!-- Dropdown used to filter rows by model decision classification -->
+                    <option value="">All decisions</option> <!-- Default option meaning show all decision categories -->
+                    <option value="YES — high conviction">YES — high conviction</option> <!-- Static option matching one of the backend decision labels exactly -->
+                    <option value="YES — core holding">YES — core holding</option> <!-- Static option for core holding rows -->
+                    <option value="YES — satellite">YES — satellite</option> <!-- Static option for satellite rows -->
+                    <option value="LIMITED — high risk / exploratory">LIMITED — high risk / exploratory</option> <!-- Static option for exploratory high-risk rows -->
+                    <option value="NO — hold as cash instead">NO — hold as cash instead</option> <!-- Static option for rows classified as cash alternatives -->
+                </select> 
+            </div> 
 
+            <div> 
+                <label for="score-filter">Minimum Score</label> <!-- Label for minimum score selection -->
+                <select id="score-filter"> <!-- Dropdown used to set a minimum score threshold -->
+                    <option value="">Any</option> <!-- Default option meaning any score is accepted -->
+                    <option value="3">3+</option> <!-- Option meaning show rows with score 3 or greater -->
+                    <option value="5">5+</option> <!-- Option meaning show rows with score 5 or greater -->
+                    <option value="7">7+</option> <!-- Option meaning show rows with score 7 or greater -->
+                </select>
+            </div> 
 
+            <div> 
+                <label for="beta-filter">Maximum Beta</label> <!-- Label for beta input -->
+                <input type="number" id="beta-filter" step="0.1" placeholder="e.g. 1.0"> <!-- Number input allowing decimal beta thresholds; step="0.1" lets the user adjust in tenths and the placeholder gives an example format -->
+            </div> 
 
+            <div> 
+                <label for="volatility-filter">Maximum Volatility %</label> <!-- Label for volatility input -->
+                <input type="number" id="volatility-filter" step="0.1" placeholder="e.g. 15"> <!-- Number input for a maximum volatility percentage threshold used by JavaScript filtering -->
+            </div> 
 
+            <div> 
+                <label for="sharpe-filter">Minimum Sharpe</label> <!-- Label for minimum Sharpe-like input -->
+                <input type="number" id="sharpe-filter" step="0.1" placeholder="e.g. 0.5"> <!-- Number input for minimum Sharpe-like value; user enters a floor rather than a ceiling -->
+            </div>
 
+            <div> 
+                <label for="pe-filter">Maximum P/E</label> <!-- Label for P/E input -->
+                <input type="number" id="pe-filter" step="0.1" placeholder="e.g. 20"> <!-- Number input for a valuation ceiling based on price-to-earnings ratio -->
+            </div> 
 
+        </div> 
 
+        <!-- ========================================================= --> 
+        <!-- PRESET BUTTONS --> <!-- Label explaining that the next block contains quick filter buttons -->
+        <!-- ========================================================= --> 
 
+        <div class="filter-actions"> <!-- Container for preset action buttons; CSS likely controls spacing and wrapping of the buttons -->
+            <button type="button" id="preset-low-risk">Low Risk</button> <!-- Button that JavaScript listens to in order to apply the low-risk preset instantly -->
+            <button type="button" id="preset-high-conviction">High Conviction</button> <!-- Button that applies the high-conviction preset -->
+            <button type="button" id="preset-core">Core Holdings</button> <!-- Button that applies the core holdings preset -->
+            <button type="button" id="preset-satellite">Satellite / Diversifiers</button> <!-- Button that applies the satellite preset -->
+            <button type="button" id="preset-exploratory">Exploratory / High Risk</button> <!-- Button that applies the exploratory preset -->
+            <button type="button" id="preset-income">Income / Defensive</button> <!-- Button that applies the income/defensive preset -->
+            <button type="button" id="preset-best-ranked">Best Ranked</button> <!-- Button that applies the best-ranked preset -->
+            <button type="button" id="preset-cash">Cash</button> <!-- Button that applies the cash preset -->
+            <button type="button" id="clear-filters">Clear Filters</button> <!-- Button that resets all manual filters and active presets -->
+        </div> <!-- Ends preset button container -->
 
+        <p id="dashboard-summary" class="muted">Showing all securities.</p> <!-- Summary text placeholder; JavaScript updates this sentence dynamically after filtering so the user knows how many rows are visible -->
+    </div> 
 
+    <!-- ========================================================= -->
+    <!-- TABLE SECTION --> <!-- Label for the market data table block -->
+    <!-- ========================================================= -->
 
+    <div class="card"> <!-- Opens the card that contains the full market table -->
+        <h2>Yahoo Finance Market Table</h2> <!-- Heading introducing the data table -->
 
-# ============================================================ 
-# ROUTES → HTML PAGES  # This section contains Flask routes that return HTML templates
-# ============================================================ 
+        <table class="table" id="market-table"> <!-- Opens the table; the class applies CSS styling and the id allows JavaScript to target this specific table for sorting and filtering -->
+            <thead> <!-- Starts the table header section, which contains the column titles -->
+                <tr> <!-- Header row -->
+                    <th data-sort="ticker">Ticker</th> <!-- Header cell for ticker; custom data-sort attribute is used by JavaScript to know this column can be sorted -->
+                    <th data-sort="sector">Sector</th> <!-- Sortable sector column -->
+                    <th data-sort="industry">Industry</th> <!-- Sortable industry column -->
+                    <th data-sort="market_cap">Market Cap</th> <!-- Sortable market cap column -->
+                    <th data-sort="beta">Beta</th> <!-- Sortable beta column -->
+                    <th data-sort="pe_ratio">P/E Ratio</th> <!-- Sortable P/E column -->
+                    <th data-sort="dividend_yield">Dividend Yield</th> <!-- Sortable dividend yield column -->
+                    <th data-sort="expected_return_percent">Expected Return</th> <!-- Sortable expected return column -->
+                    <th data-sort="score">Score</th> <!-- Sortable score column -->
+                    <th data-sort="decision">Decision</th> <!-- Sortable decision column -->
+                    <th data-sort="tag">Tag</th> <!-- Sortable tag column -->
+                    <th data-sort="suggested_weight">Suggested Weight</th> <!-- Sortable weight suggestion column -->
+                    <th data-sort="volatility">Volatility</th> <!-- Sortable volatility column -->
+                    <th data-sort="sharpe_like">Sharpe</th> <!-- Sortable Sharpe-like column -->
+                    <th data-sort="ranking_score">Ranking Score</th> <!-- Sortable ranking score column -->
+                </tr> 
+            </thead> 
 
-@app.route("/")  # Registers the root URL so visiting the site homepage triggers the home() function
-def home():  # Defines the Flask view function for the home page
-    return render_template("index.html")  # Renders the index.html template and sends it back to the browser
+            <tbody>
+                {% for row in rows %}
+                <!-- Each row stores custom data attributes for JavaScript filtering -->
+                <tr
+                    data-ticker="{{ row.ticker }}"
+                    data-sector="{{ row.sector }}"
+                    data-decision="{{ row.decision }}"
+                    data-score="{{ row.score if row.score is not none else '' }}"
+                    data-beta="{{ row.beta if row.beta is not none else '' }}"
+                    data-pe="{{ row.pe_ratio if row.pe_ratio is not none else '' }}"
+                    data-volatility="{{ row.volatility if row.volatility is not none else '' }}"
+                    data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}"
+                    data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}"
+                    data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}"
+                    data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}"
+                    data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}"
+                    data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}"
+                    data-satellite="{{ 'true' if row.is_satellite else 'false' }}"
+                    data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}"
+                    data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}"
+                    data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}"
+                    class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}"
+                >
+                    <td>{{ row.ticker }}</td>
+                    <td>{{ row.sector }}</td>
+                    <td>{{ row.industry }}</td>
+                    <td>{{ row.market_cap_display }}</td>
+                    <td>{{ row.beta if row.beta is not none else "N/A" }}</td>
+                    <td>{{ row.pe_ratio if row.pe_ratio is not none else "N/A" }}</td>
+                    <td>{{ row.dividend_yield if row.dividend_yield is not none else "N/A" }}{% if row.dividend_yield is not none %}%{% endif %}</td>
+                    <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td>
+                    <td>{{ row.score if row.score is not none else "N/A" }}</td>
+                    <td>{{ row.decision }}</td>
+                    <td><span class="tag">{{ row.tag }}</span></td>
+                    <td>{{ row.suggested_weight }}</td>
+                    <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td>
+                    <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td>
+                    <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table> 
+    </div> 
 
-@app.route("/criteria")  # Registers the /criteria URL so Flask knows which function should handle that page
-def criteria():  # Defines the Flask view function for the criteria page
-    return render_template(  # Starts the template-rendering call for criteria.html
-        "criteria.html",  # Tells Flask to render the criteria.html file from the templates folder
-        portfolio_choices=get_portfolio_choices(),  # Passes the dropdown-ready portfolio choice list into the Jinja template
-        default_portfolio_key="scenario1",  # Passes scenario1 as the default selected portfolio in the dropdown
-        default_portfolio_name=get_portfolio_display_name(PORTFOLIO_1)  # Passes the display name of PORTFOLIO_1 for default page text
-    )  
+</div> 
 
-def get_cached_market_rows():  # Defines a helper function that returns cached dashboard rows instead of rebuilding them every time
-    now = time.time()  # Stores the current Unix timestamp in seconds so cache age can be checked
-
-    if (  # Starts the cache-validation condition
-        dashboard_cache["rows"] is None  # Rebuilds the cache if no rows have ever been stored yet
-        or now - dashboard_cache["timestamp"] > DASHBOARD_CACHE_SECONDS  # Rebuilds the cache if the existing cache is older than the allowed cache duration
-    ):  # Ends the cache condition
-        dashboard_cache["rows"] = build_market_rows()  # Recomputes the dashboard rows and stores them in the cache
-        dashboard_cache["timestamp"] = now  # Updates the cache timestamp to the current time after rebuilding
-
-    return dashboard_cache["rows"]  # Returns the cached dashboard rows whether they were freshly built or already stored
-    
-@app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
-def market_dashboard():  # Defines the Flask view function for the dashboard page
-    rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
-    return render_template("market_dashboard.html", rows=rows)  # Renders market_dashboard.html and passes the rows variable into the Jinja template
-
-@app.route("/contact")  # Registers the /contact route for the contact page
-def contact():  # Defines the Flask view function for the contact page
-    return render_template("contact.html")  # Renders the contact.html template and returns it to the browser
-
-
-@app.route("/portfolio_profiles")  # Registers the /portfolio_profiles route for the portfolio workflow/profile page
-def portfolio_profiles():  # Defines the Flask view function for the portfolio profiles page
-    return render_template("portfolio_profiles.html", portfolios=PORTFOLIOS)  # Renders portfolio_profiles.html and passes the full PORTFOLIOS dictionary into the Jinja template
-
-
-# ============================================================  
-# ROUTES → API ENDPOINTS  # This section contains Flask routes that return JSON data instead of HTML
-# ============================================================ 
-
-@app.route("/analyze", methods=["POST"])  # Registers the /analyze endpoint and allows only POST requests because the frontend submits form data to it
-def analyze():  # Defines the Flask view function that handles stock analysis requests
-    ticker = request.form.get("ticker", "").strip().upper()  # Reads the ticker from submitted form data, removes extra spaces, and converts it to uppercase
-    portfolio_key = request.form.get("portfolio_key", "scenario1")  # Reads the selected portfolio_key from form data and defaults to scenario1 if missing
-
-    if portfolio_key not in PORTFOLIOS:  # Checks whether the submitted portfolio_key actually exists in the master portfolio dictionary
-        return jsonify({"error": "Invalid portfolio selected."}), 400  # Returns a JSON error with HTTP status 400 if the portfolio key is invalid
-
-    if not ticker:  # Checks whether the user failed to submit a ticker
-        return jsonify({"error": "Please select a ticker."}), 400  # Returns a JSON error with HTTP status 400 if the ticker is empty
-
-    try:  # Starts a try block so unexpected analysis problems do not crash the application
-        benchmark_ticker = PORTFOLIOS[portfolio_key]["ticker"]  # Looks up the benchmark/reference ticker associated with the selected portfolio
-        result = analyze_stock(ticker, benchmark_ticker, portfolio_key)  # Calls the main analysis function using the selected ticker, benchmark, and portfolio
-        return jsonify(result)  # Returns the completed analysis result as JSON to the JavaScript frontend
-    except Exception as e:  # Catches unexpected errors during analysis
-        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500  # Returns a JSON error with HTTP status 500 if analysis fails unexpectedly
-
-@app.route("/add-to-portfolio", methods=["POST"])  # Registers the /add-to-portfolio endpoint and allows only POST because the frontend sends JSON data to it
-def add_to_portfolio():  # Defines the Flask view function that adds or updates a holding in a selected portfolio
-    data = request.get_json(force=True)  # Reads the incoming request body as JSON and forces parsing even if headers are imperfect
-
-    ticker = data.get("ticker")  # Extracts the ticker value from the JSON payload
-    portfolio_key = data.get("portfolio_key")  # Extracts the selected portfolio key from the JSON payload
-    portfolio_name = data.get("portfolio_name")  # Extracts the human-readable portfolio name from the JSON payload
-    recommended_weight = data.get("recommended_weight")  # Extracts the recommended weight text from the JSON payload
-    decision = data.get("decision")  # Extracts the decision text from the JSON payload
-    tag = data.get("tag")  # Extracts the short display tag from the JSON payload
-    sector = data.get("sector")  # Extracts the sector metadata from the JSON payload
-    industry = data.get("industry")  # Extracts the industry metadata from the JSON payload
-    beta = data.get("beta")  # Extracts the beta value from the JSON payload
-
-    if not ticker or not portfolio_key or portfolio_key not in PORTFOLIOS:  # Validates that the ticker exists, the portfolio key exists, and the portfolio key is valid
-        return jsonify({"error": "Invalid stock or portfolio."}), 400  # Returns a JSON error with HTTP status 400 if validation fails
-
-    validation = validate_portfolio_addition(  # Calls the portfolio-validation helper to check weight limits, mandate restrictions, and warnings
-        portfolio_key=portfolio_key,  # Passes the selected portfolio key into the validation function
-        ticker=ticker,  # Passes the ticker into the validation function
-        recommended_weight=recommended_weight,  # Passes the suggested weight text so it can be parsed and checked
-        sector=sector,  # Passes the sector so ESG and mandate checks can use it
-        industry=industry  # Passes the industry so ESG and mandate checks can use it
-    )  
-
-    if validation["errors"]:  # Checks whether the validation helper found hard errors that should block the add/update action
-        return jsonify({  # Starts building a JSON error response
-            "error": validation["errors"],  # Returns the list of hard validation errors
-            "warnings": validation["warnings"]  # Also returns any warnings found during validation
-        }), 400  # Sends the JSON back with HTTP status 400 because the request is not valid
-
-    existing_stock = next(  # Starts a search for an already-existing holding with the same ticker in the selected portfolio
-        (stock for stock in selected_stocks[portfolio_key] if stock["ticker"] == ticker),  # Generator expression returns the first matching holding if it exists
-        None  # Returns None if the ticker is not already in the selected portfolio
-    )  
-
-    payload = {  # Builds the holding dictionary that will be saved in selected_stocks
-        "portfolio_name": portfolio_name,  # Stores the human-readable portfolio name
-        "ticker": ticker,  # Stores the ticker symbol
-        "recommended_weight": recommended_weight,  # Stores the suggested position-size text such as 6% or 3.5%
-        "weight_decimal": validation["weight_decimal"],  # Stores the parsed decimal weight returned by the validation function
-        "decision": decision,  # Stores the decision label for this holding
-        "tag": tag,  # Stores the short UI tag
-        "sector": sector,  # Stores the sector metadata
-        "industry": industry,  # Stores the industry metadata
-        "beta": beta  # Stores the beta value
-    }  
-
-    if existing_stock:  # Checks whether this ticker is already present in the selected portfolio
-        existing_stock.update(payload)  # Updates the existing stored holding with the new payload values
-        message = f"{ticker} updated in portfolio."  # Creates a confirmation message telling the frontend the holding was updated
-    else:  # Runs when the ticker does not already exist in the selected portfolio
-        selected_stocks[portfolio_key].append(payload)  # Appends the new holding payload to the selected portfolio list
-        message = f"{ticker} added to portfolio."  # Creates a confirmation message telling the frontend the holding was newly added
-
-    return jsonify({  # Starts building the success JSON response
-        "message": message,  # Returns the add/update confirmation message
-        "warnings": validation["warnings"],  # Returns any warnings that still need to be shown to the user
-        "portfolio": build_grouped_portfolio_payload()  # Returns refreshed grouped portfolio data so the frontend can redraw current holdings immediately
-    }) 
-
-@app.route("/portfolio-stocks")  # Registers the /portfolio-stocks endpoint used by JavaScript to fetch grouped portfolio holdings
-def portfolio_stocks():  # Defines the Flask view function for returning current selected holdings
-    return jsonify(build_grouped_portfolio_payload())  # Returns the grouped holdings and summary metrics as JSON
-
-# ============================================================ 
-# RUN APP  # This section runs the Flask development server when the file is executed directly
-# ============================================================ 
-if __name__ == "__main__":  # Checks whether this file is being run directly rather than imported into another Python file
-    app.run(debug=True)  # Starts the Flask development server with debug mode enabled so code changes and errors are easier to test
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links the external JavaScript file; Flask generates the correct path, and this script powers features like filtering, sorting, and preset buttons -->
+</body> 
+</html> 
