@@ -878,12 +878,6 @@ MASTER_TICKERS = {  # Creates a dictionary that groups tickers into categories f
 }
 
 
-def build_market_rows():  # Defines a function that builds the full list of dashboard rows shown in market_dashboard.html
-    dashboard_tickers = sorted({  # Creates a sorted list of unique tickers from all categories in MASTER_TICKERS
-        ticker  # This is the individual ticker symbol that will be collected
-        for group in MASTER_TICKERS.values()  # Loops through each list of tickers in the dictionary values
-        for ticker in group  # Loops through each ticker inside each category list
-    }) 
 
     rows = []  # Creates an empty list that will store one processed dashboard row per ticker
 
@@ -993,6 +987,112 @@ def build_market_rows():  # Defines a function that builds the full list of dash
     rows.sort(key=lambda row: row["ranking_score"], reverse=True)  # Sorts all dashboard rows from highest ranking score to lowest so strongest names appear first
     return rows  # Returns the fully built list of dashboard rows to the calling function
 
+def build_market_rows():
+    dashboard_tickers = sorted({
+        ticker
+        for group in MASTER_TICKERS.values()
+        for ticker in group
+    })
+
+    print("DEBUG dashboard_tickers count:", len(dashboard_tickers))
+
+    rows = []
+
+    batch_data = yf.download(
+        tickers=dashboard_tickers,
+        period="1y",
+        auto_adjust=True,
+        progress=False,
+        group_by="ticker",
+        threads=True
+    )
+
+    print("DEBUG batch_data empty:", batch_data is None or batch_data.empty)
+
+    for ticker in dashboard_tickers:
+        metrics_1y = compute_metrics_from_batch(batch_data, ticker)
+
+        sector = "Unknown"
+        industry = "Unknown"
+        market_cap = None
+        market_cap_display = "N/A"
+        beta = None
+        pe_ratio = None
+        dividend_yield = None
+
+        decision_pack = score_and_decide(
+            expected_return=metrics_1y["annualised_expected_return"],
+            volatility=metrics_1y["annualised_volatility"],
+            sharpe_like=metrics_1y["sharpe_like"],
+            beta=beta
+        )
+
+        expected_return_percent = round(metrics_1y["annualised_expected_return"] * 100, 2)
+        volatility_percent = round(metrics_1y["annualised_volatility"] * 100, 2)
+        sharpe_like_value = round(metrics_1y["sharpe_like"], 2)
+
+        ranking_score = (
+            (metrics_1y["annualised_expected_return"] * 0.50)
+            + (metrics_1y["sharpe_like"] * 0.30)
+            - (metrics_1y["annualised_volatility"] * 0.20)
+        )
+
+        is_low_risk = (
+            (beta is not None and beta <= 1.0)
+            and metrics_1y["annualised_volatility"] <= 0.18
+            and decision_pack["decision"] != "NO — hold as cash instead"
+        )
+
+        is_high_conviction = (
+            decision_pack["decision"] == "YES — high conviction"
+            and decision_pack["score"] >= 7
+        )
+
+        is_income_candidate = (
+            (dividend_yield is not None and dividend_yield >= 1.5)
+            or ticker in {"IEF", "SHY", "AGG", "BND", "TIP", "XLP", "XLV", "XLU"}
+        )
+
+        is_best_ranked = (
+            decision_pack["score"] >= 5
+            and metrics_1y["sharpe_like"] >= 0.3
+        )
+
+        is_core_holding = decision_pack["decision"] == "YES — core holding"
+        is_satellite = decision_pack["decision"] == "YES — satellite"
+        is_exploratory = decision_pack["decision"] == "LIMITED — high risk / exploratory"
+        is_cash_candidate = decision_pack["decision"] == "NO — hold as cash instead"
+
+        rows.append({
+            "ticker": ticker,
+            "sector": sector,
+            "industry": industry,
+            "market_cap": market_cap,
+            "market_cap_display": market_cap_display,
+            "beta": None if beta is None else round(beta, 2),
+            "pe_ratio": None if pe_ratio is None else round(pe_ratio, 2),
+            "dividend_yield": dividend_yield,
+            "score": decision_pack["score"],
+            "decision": decision_pack["decision"],
+            "tag": decision_pack["tag"],
+            "suggested_weight": decision_pack["recommended_weight"],
+            "expected_return_percent": expected_return_percent,
+            "volatility": volatility_percent,
+            "sharpe_like": sharpe_like_value,
+            "ranking_score": round(ranking_score, 3),
+            "is_low_risk": is_low_risk,
+            "is_high_conviction": is_high_conviction,
+            "is_core_holding": is_core_holding,
+            "is_satellite": is_satellite,
+            "is_exploratory": is_exploratory,
+            "is_income_candidate": is_income_candidate,
+            "is_best_ranked": is_best_ranked,
+            "is_cash_candidate": is_cash_candidate,
+        })
+
+    print("DEBUG rows built:", len(rows))
+    rows.sort(key=lambda row: row["ranking_score"], reverse=True)
+    return rows
 
 # ============================================================ 
 # ROUTES → HTML PAGES  # This section contains Flask routes that return HTML templates
@@ -1023,10 +1123,39 @@ def get_cached_market_rows():  # Defines a helper function that returns cached d
 
     return dashboard_cache["rows"]  # Returns the cached dashboard rows whether they were freshly built or already stored
     
-@app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
-def market_dashboard():  # Defines the Flask view function for the dashboard page
-    rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
-    return render_template("market_dashboard.html", rows=rows)  # Renders market_dashboard.html and passes the rows variable into the Jinja template
+
+
+
+@app.route("/market_dashboard")
+def market_dashboard():
+    test_rows = [
+        {
+            "ticker": "TEST",
+            "sector": "Test Sector",
+            "industry": "Test Industry",
+            "market_cap_display": "N/A",
+            "beta": None,
+            "pe_ratio": None,
+            "dividend_yield": None,
+            "expected_return_percent": 12.5,
+            "score": 7,
+            "decision": "YES — high conviction",
+            "tag": "High conviction",
+            "suggested_weight": "6%",
+            "volatility": 10.2,
+            "sharpe_like": 1.25,
+            "ranking_score": 2.345,
+            "is_income_candidate": False,
+            "is_low_risk": False,
+            "is_high_conviction": True,
+            "is_core_holding": False,
+            "is_satellite": False,
+            "is_exploratory": False,
+            "is_cash_candidate": False,
+            "is_best_ranked": True,
+        }
+    ]
+    return render_template("market_dashboard.html", rows=test_rows)
 
 @app.route("/contact")  # Registers the /contact route for the contact page
 def contact():  # Defines the Flask view function for the contact page
