@@ -375,20 +375,19 @@ PORTFOLIOS = {
 # ============================================================  
 # HELPERS  # This section contains reusable helper functions used across routes and analysis logic
 # ============================================================  
-
 def get_portfolio_display_name(portfolio):  # Defines a helper function that returns the best display name for a portfolio dictionary
     identity = portfolio.get("identity", {})  # Safely gets the nested "identity" dictionary; returns empty dict if missing to avoid errors
     return (  # Starts a grouped return statement that will return the first non-empty value it finds
         identity.get("name")  # First tries to return the client's personal name if this is an individual portfolio
         or identity.get("company_name")  # If no personal name exists, tries the company name for corporate/entity portfolios
         or portfolio.get("client_id", "Unknown Portfolio")  # If neither exists, falls back to client_id, or "Unknown Portfolio" if missing
-    ) 
+    )  # Ends the grouped return expression
 
 def get_portfolio_choices():  # Defines a helper function to build portfolio options for the HTML dropdown menu
     return [  # Returns a list comprehension containing one dictionary per portfolio
         {"key": key, "name": get_portfolio_display_name(portfolio)}  # Creates a small dictionary with the scenario key and cleaned display name
         for key, portfolio in PORTFOLIOS.items()  # Loops through the global PORTFOLIOS dictionary to process every portfolio scenario
-    ] 
+    ]  # Ends the list comprehension and returns the finished list
 
 def safe_div(a, b):  # Defines a helper function for safe division so the app does not crash on divide-by-zero or None
     return a / b if b not in (0, 0.0, None) else 0.0  # Divides a by b only if b is valid; otherwise returns 0.0 as a safe fallback
@@ -436,11 +435,10 @@ def calculate_portfolio_summary(stocks):  # Defines a helper function that calcu
             "total_allocated_percent": 0.0,  # States that 0% of capital is allocated
             "remaining_cash_percent": 100.0,  # States that 100% remains as cash
             "average_beta": None  # Average beta is unknown because there are no holdings
-        }  
+        }  # Ends the default summary dictionary
 
     total_allocated = sum(stock.get("weight_decimal", 0.0) for stock in stocks)  # Sums the decimal weights of all holdings to get total allocation
     betas = [stock["beta"] for stock in stocks if stock.get("beta") is not None]  # Builds a list of all non-null beta values from holdings
-
     average_beta = round(sum(betas) / len(betas), 2) if betas else None  # Calculates average beta rounded to 2 decimals, or None if no betas exist
 
     return {  # Returns the portfolio summary dictionary
@@ -448,7 +446,7 @@ def calculate_portfolio_summary(stocks):  # Defines a helper function that calcu
         "total_allocated_percent": round(total_allocated * 100, 2),  # Converts total allocated weight to percentage form
         "remaining_cash_percent": round(max(0.0, 1.0 - total_allocated) * 100, 2),  # Calculates remaining unallocated cash as a percentage
         "average_beta": average_beta  # Includes the previously calculated average beta
-    } 
+    }  # Ends the returned summary dictionary
 
 def build_grouped_portfolio_payload():  # Defines a helper function to build all portfolio holdings grouped by scenario for the frontend
     grouped = {}  # Creates an empty dictionary that will hold each portfolio's grouped output
@@ -459,13 +457,13 @@ def build_grouped_portfolio_payload():  # Defines a helper function to build all
             stocks,  # The list of holdings to sort
             key=lambda stock: stock.get("weight_decimal", 0.0),  # Sort key uses weight_decimal so biggest positions appear first
             reverse=True  # Sorts from highest weight to lowest weight
-        ) 
+        )  # Ends the sorted() call and stores sorted holdings
 
         grouped[key] = {  # Adds one entry to the grouped dictionary for this scenario
             "portfolio_name": get_portfolio_display_name(portfolio),  # Stores a clean portfolio name for display
             "stocks": sorted_stocks,  # Stores the sorted holdings list
             "summary": calculate_portfolio_summary(sorted_stocks)  # Stores the calculated summary for those holdings
-        } 
+        }  # Ends the nested dictionary for one portfolio
 
     return grouped  # Returns the full grouped portfolio payload to be used in JSON responses or template rendering
 
@@ -483,7 +481,7 @@ def default_metrics(period_label: str):  # Defines a helper function that return
         "return_observations": 0,  # No return observations were found
         "returns_series": None,  # No return series is available
         "period_label": period_label,  # Stores the period label passed into the function, such as "1y" or "3mo"
-    }  
+    }  # Ends the default metrics dictionary
     
 def compute_metrics_from_batch(batch_data, ticker: str):  # Defines a helper function to compute metrics for one ticker using already-downloaded batch data
     try:  # Starts a try block so dashboard processing does not crash if one ticker has issues
@@ -520,7 +518,7 @@ def compute_metrics_from_batch(batch_data, ticker: str):  # Defines a helper fun
                 "return_observations": 0,  # Return observation count is zero
                 "returns_series": None,  # No valid returns series to pass onward
                 "period_label": "1y",  # Labels this metric block as 1-year data
-            } 
+            }  # Ends partial metrics dictionary
 
         annualised_volatility = float(returns.std() * np.sqrt(252))  # Converts daily return standard deviation into annualised volatility using 252 trading days
         annualised_expected_return = float(returns.mean() * 252)  # Converts average daily return into annualised expected return
@@ -540,7 +538,7 @@ def compute_metrics_from_batch(batch_data, ticker: str):  # Defines a helper fun
             "return_observations": int(len(returns)),  # Number of valid return observations
             "returns_series": returns,  # Returns the full pandas returns series for later beta calculations
             "period_label": "1y",  # Labels this metric block as 1-year
-        } 
+        }  # Ends final metrics dictionary
 
     except Exception:  # Catches any unexpected error during metric calculation
         return default_metrics("1y")  # Returns default 1-year metrics instead of crashing the dashboard
@@ -581,7 +579,7 @@ def compute_metrics(ticker: str, period: str):  # Defines a helper function to d
             "return_observations": 0,  # No return observations
             "returns_series": None,  # No return series stored
             "period_label": period,  # Keeps the original period label
-        } 
+        }  # Ends partial metrics dictionary
 
     annualised_volatility = float(returns.std() * np.sqrt(252))  # Converts daily standard deviation into annualised volatility
     annualised_expected_return = float(returns.mean() * 252)  # Converts daily average return into annualised expected return
@@ -601,7 +599,7 @@ def compute_metrics(ticker: str, period: str):  # Defines a helper function to d
         "return_observations": int(len(returns)),  # Number of valid returns
         "returns_series": returns,  # Stores the full returns series for later use such as beta
         "period_label": period,  # Keeps the input period label
-    }  
+    }  # Ends the returned metrics dictionary
 
 def build_quarterly_forecast(latest_price: float, annualised_expected_return: float):  # Defines a helper function that projects quarterly prices based on annualised return
     adjusted_return = max(annualised_expected_return, -0.95)  # Caps downside at -95% to prevent invalid math when raising negative values to fractional powers
@@ -665,7 +663,7 @@ def score_and_decide(expected_return: float, volatility: float, sharpe_like: flo
         "decision": decision,  # Final recommendation text
         "recommended_weight": weight,  # Suggested portfolio weight
         "tag": tag  # Short label for UI display
-    }  
+    }  # Ends score dictionary
 
 def validate_portfolio_addition(portfolio_key, ticker, recommended_weight, sector, industry):  # Defines a helper to check whether a proposed position respects the selected portfolio rules
     portfolio = PORTFOLIOS[portfolio_key]  # Retrieves the chosen portfolio definition from the global dictionary
@@ -679,19 +677,19 @@ def validate_portfolio_addition(portfolio_key, ticker, recommended_weight, secto
     if max_weight_allowed is not None and weight_percent > max_weight_allowed:  # Checks whether proposed weight breaches allowed limit
         errors.append(  # Adds a hard validation error message
             f"Recommended weight of {weight_percent:.2f}% exceeds the portfolio limit of {max_weight_allowed:.2f}%."  # Creates readable error text
-        ) 
+        )  # Ends error append call
 
     current_total_excluding_same_ticker = sum(  # Starts calculation of current total allocation while excluding this ticker if already present
         stock.get("weight_decimal", 0.0)  # Uses each existing holding's decimal weight
         for stock in selected_stocks[portfolio_key]  # Loops through all selected holdings in this portfolio
         if stock.get("ticker") != ticker  # Excludes the same ticker so updates do not double-count existing allocation
-    )  
+    )  # Ends sum expression
 
     projected_total = current_total_excluding_same_ticker + weight_decimal  # Calculates what total allocation would become after adding/updating this position
     if projected_total > 1.0:  # Checks whether projected portfolio weight would exceed 100%
         errors.append(  # Adds a hard validation error
             f"Projected total allocation would be {projected_total * 100:.2f}%, which exceeds 100%."  # User-friendly explanation of over-allocation
-        )  
+        )  # Ends append call
 
     legal_rule = str(portfolio.get("constraints", {}).get("legal", "")).lower()  # Reads the legal constraint text safely and converts it to lowercase for matching
     if "prohibits equities" in legal_rule:  # Checks whether the mandate bans equity exposure
@@ -717,159 +715,155 @@ def validate_portfolio_addition(portfolio_key, ticker, recommended_weight, secto
         "errors": errors,  # Hard validation failures
         "warnings": warnings,  # Soft review warnings
         "weight_decimal": weight_decimal  # Parsed weight value to reuse later without recalculating
-    } 
+    }  # Ends validation dictionary
 
-# ============================================================  # Decorative separator to make the code easier to read in sections
-# STOCK ANALYSIS ENGINE  # This section contains the main function that analyses a selected ticker
-# ============================================================  # Decorative separator ending the section title
+# ============================================================
+# CRITERIA PAGE SECTION
+# Used by criteria.html
+# ============================================================
 
-def analyze_stock(ticker: str, benchmark_ticker: str, portfolio_key: str):  # Defines a function that analyses one ticker against a chosen benchmark and portfolio
-    metrics_1y = compute_metrics(ticker, "1y")  # Calls the helper function to calculate 1-year metrics for the selected ticker
-    metrics_3m = compute_metrics(ticker, "3mo")  # Calls the helper function to calculate 3-month metrics for the selected ticker
-    benchmark_metrics = compute_metrics(benchmark_ticker, "1y")  # Calculates 1-year metrics for the benchmark so beta can be compared against it
+def analyze_stock(ticker: str, benchmark_ticker: str, portfolio_key: str):
+    metrics_1y = compute_metrics(ticker, "1y")
+    metrics_3m = compute_metrics(ticker, "3mo")
+    benchmark_metrics = compute_metrics(benchmark_ticker, "1y")
 
-    beta = 0.0  # Sets a default beta value in case beta cannot be calculated later
-    benchmark_start_date = benchmark_metrics.get("return_start_date", "N/A")  # Gets the benchmark return start date for display, or N/A if missing
-    benchmark_end_date = benchmark_metrics.get("return_end_date", "N/A")  # Gets the benchmark return end date for display, or N/A if missing
-    beta_observations = 0  # Starts the counter for how many aligned return observations were used in beta calculation
+    beta = 0.0
+    benchmark_start_date = benchmark_metrics.get("return_start_date", "N/A")
+    benchmark_end_date = benchmark_metrics.get("return_end_date", "N/A")
+    beta_observations = 0
 
-    if metrics_1y["returns_series"] is not None and benchmark_metrics["returns_series"] is not None:  # Only continue with beta calculation if both return series exist
-        stock_aligned, bench_aligned = metrics_1y["returns_series"].align(  # Aligns the stock and benchmark return series so both have the same dates
-            benchmark_metrics["returns_series"],  # Uses the benchmark return series as the series to align against
-            join="inner"  # Keeps only the dates that appear in both series so the comparison is mathematically valid
+    if metrics_1y["returns_series"] is not None and benchmark_metrics["returns_series"] is not None:
+        stock_aligned, bench_aligned = metrics_1y["returns_series"].align(
+            benchmark_metrics["returns_series"],
+            join="inner"
         )
 
-        beta_observations = int(len(stock_aligned))  # Stores how many matching observations exist after alignment
+        beta_observations = int(len(stock_aligned))
 
-        if len(stock_aligned) > 1 and bench_aligned.var() != 0:  # Checks that there is enough data and the benchmark variance is not zero
-            beta = float(stock_aligned.cov(bench_aligned) / bench_aligned.var())  # Calculates beta as covariance of stock and benchmark divided by benchmark variance
+        if len(stock_aligned) > 1 and bench_aligned.var() != 0:
+            beta = float(stock_aligned.cov(bench_aligned) / bench_aligned.var())
 
-    decision_pack = score_and_decide(  # Sends the calculated metrics into the scoring model to get a decision and recommended weight
-        expected_return=metrics_1y["annualised_expected_return"],  # Passes 1-year annualised expected return into the scoring function
-        volatility=metrics_1y["annualised_volatility"],  # Passes 1-year annualised volatility into the scoring function
-        sharpe_like=metrics_1y["sharpe_like"],  # Passes 1-year Sharpe-like ratio into the scoring function
-        beta=beta  # Passes the calculated beta into the scoring function
-    )  
+    decision_pack = score_and_decide(
+        expected_return=metrics_1y["annualised_expected_return"],
+        volatility=metrics_1y["annualised_volatility"],
+        sharpe_like=metrics_1y["sharpe_like"],
+        beta=beta
+    )
 
-    try:  # Starts a try block because Yahoo Finance metadata requests can sometimes fail
-        info = yf.Ticker(ticker).info or {}  # Requests metadata for the ticker from yfinance and falls back to an empty dictionary if nothing is returned
-        sector = (  # Starts a grouped fallback expression for sector
-            info.get("sector")  # First tries to get the standard sector field
-            or info.get("category")  # If sector is missing, tries category which is common for ETFs or funds
-            or info.get("fundCategory")  # If category is missing, tries fundCategory as another fallback
-            or "Unknown"  # If none of the above exist, uses "Unknown" as a safe default
-        ) 
-        industry = (  # Starts a grouped fallback expression for industry
-            info.get("industry")  # First tries to get the standard industry field
-            or info.get("quoteType")  # If industry is missing, tries quoteType as a fallback
-            or info.get("fundFamily")  # If quoteType is missing, tries fundFamily for fund-based instruments
-            or "Unknown"  # If none of the above exist, uses "Unknown" as the fallback
-        ) 
-    except Exception:  # Catches any error thrown by the metadata request so the app does not crash
-        sector = "Unknown"  # Uses a default sector value when metadata lookup fails
-        industry = "Unknown"  # Uses a default industry value when metadata lookup fails
+    try:
+        info = yf.Ticker(ticker).info or {}
+        sector = (
+            info.get("sector")
+            or info.get("category")
+            or info.get("fundCategory")
+            or "Unknown"
+        )
+        industry = (
+            info.get("industry")
+            or info.get("quoteType")
+            or info.get("fundFamily")
+            or "Unknown"
+        )
+    except Exception:
+        sector = "Unknown"
+        industry = "Unknown"
 
-    forecast_1y = build_quarterly_forecast(  # Calls the forecast helper to create a 1-year based quarterly forecast
-        latest_price=metrics_1y["latest_price"],  # Uses the latest price from the 1-year metrics as the starting price
-        annualised_expected_return=metrics_1y["annualised_expected_return"]  # Uses the 1-year annualised expected return to build the forecast
-    )  
+    forecast_1y = build_quarterly_forecast(
+        latest_price=metrics_1y["latest_price"],
+        annualised_expected_return=metrics_1y["annualised_expected_return"]
+    )
 
-    forecast_3m = build_quarterly_forecast(  # Calls the forecast helper to create a 3-month based quarterly forecast
-        latest_price=metrics_3m["latest_price"],  # Uses the latest price from the 3-month metrics as the starting price
-        annualised_expected_return=metrics_3m["annualised_expected_return"]  # Uses the 3-month annualised expected return to build the forecast
-    )  
+    forecast_3m = build_quarterly_forecast(
+        latest_price=metrics_3m["latest_price"],
+        annualised_expected_return=metrics_3m["annualised_expected_return"]
+    )
 
-    portfolio = PORTFOLIOS[portfolio_key]  # Looks up the selected portfolio dictionary from the global PORTFOLIOS object using the chosen key
+    portfolio = PORTFOLIOS[portfolio_key]
 
-    return {  # Starts the final dictionary returned to the Flask route and then to the frontend as JSON
-        "ticker": ticker.upper(),  # Returns the ticker in uppercase so it displays cleanly in the browser
-        "portfolio_key": portfolio_key,  # Returns the selected portfolio key so the frontend knows which scenario was analysed
-        "portfolio_name": get_portfolio_display_name(portfolio),  # Returns the cleaned display name of the selected portfolio using the helper function
-        "beta": beta,  # Returns the calculated beta value
-        "score": decision_pack["score"],  # Returns the numeric score produced by the scoring model
-        "decision": decision_pack["decision"],  # Returns the decision text produced by the scoring model
-        "recommended_weight": decision_pack["recommended_weight"],  # Returns the recommended portfolio weight from the scoring model
-        "sector": sector,  # Returns the sector metadata found from Yahoo Finance or the fallback value
-        "industry": industry,  # Returns the industry metadata found from Yahoo Finance or the fallback value
-        "tag": decision_pack["tag"],  # Returns the short tag label from the scoring model
-        "benchmark_ticker": benchmark_ticker,  # Returns the benchmark ticker used in the comparison
-        "benchmark_start_date": benchmark_start_date,  # Returns the benchmark return series start date for the frontend display
-        "benchmark_end_date": benchmark_end_date,  # Returns the benchmark return series end date for the frontend display
-        "beta_observations": beta_observations,  # Returns the number of aligned observations used in beta calculation
-        "one_year": {  # Starts the nested dictionary for 1-year analysis results
-            "annualised_expected_return": metrics_1y["annualised_expected_return"],  # Stores the 1-year annualised expected return
-            "annualised_volatility": metrics_1y["annualised_volatility"],  # Stores the 1-year annualised volatility
-            "sharpe_like": metrics_1y["sharpe_like"],  # Stores the 1-year Sharpe-like ratio
-            "latest_price": metrics_1y["latest_price"],  # Stores the most recent price in the 1-year data
-            "price_start_date": metrics_1y["price_start_date"],  # Stores the first date in the 1-year price series
-            "price_end_date": metrics_1y["price_end_date"],  # Stores the last date in the 1-year price series
-            "price_observations": metrics_1y["price_observations"],  # Stores how many price observations exist in the 1-year series
-            "return_start_date": metrics_1y["return_start_date"],  # Stores the first date in the 1-year return series
-            "return_end_date": metrics_1y["return_end_date"],  # Stores the last date in the 1-year return series
-            "return_observations": metrics_1y["return_observations"],  # Stores how many return observations exist in the 1-year series
-            "forecast": {  # Starts the nested forecast block inside the 1-year analysis block
-                "quarterly_return": forecast_1y["quarterly_return"],  # Stores the quarterly return implied by the 1-year expected return
-                "q1_expected_price": forecast_1y["q1_expected_price"],  # Stores the projected price for quarter 1
-                "q2_expected_price": forecast_1y["q2_expected_price"],  # Stores the projected price for quarter 2
-                "q3_expected_price": forecast_1y["q3_expected_price"],  # Stores the projected price for quarter 3
-                "q4_expected_price": forecast_1y["q4_expected_price"],  # Stores the projected price for quarter 4
+    return {
+        "ticker": ticker.upper(),
+        "portfolio_key": portfolio_key,
+        "portfolio_name": get_portfolio_display_name(portfolio),
+        "beta": beta,
+        "score": decision_pack["score"],
+        "decision": decision_pack["decision"],
+        "recommended_weight": decision_pack["recommended_weight"],
+        "sector": sector,
+        "industry": industry,
+        "tag": decision_pack["tag"],
+        "benchmark_ticker": benchmark_ticker,
+        "benchmark_start_date": benchmark_start_date,
+        "benchmark_end_date": benchmark_end_date,
+        "beta_observations": beta_observations,
+        "one_year": {
+            "annualised_expected_return": metrics_1y["annualised_expected_return"],
+            "annualised_volatility": metrics_1y["annualised_volatility"],
+            "sharpe_like": metrics_1y["sharpe_like"],
+            "latest_price": metrics_1y["latest_price"],
+            "price_start_date": metrics_1y["price_start_date"],
+            "price_end_date": metrics_1y["price_end_date"],
+            "price_observations": metrics_1y["price_observations"],
+            "return_start_date": metrics_1y["return_start_date"],
+            "return_end_date": metrics_1y["return_end_date"],
+            "return_observations": metrics_1y["return_observations"],
+            "forecast": {
+                "quarterly_return": forecast_1y["quarterly_return"],
+                "q1_expected_price": forecast_1y["q1_expected_price"],
+                "q2_expected_price": forecast_1y["q2_expected_price"],
+                "q3_expected_price": forecast_1y["q3_expected_price"],
+                "q4_expected_price": forecast_1y["q4_expected_price"],
             }
-        },  
-        "three_month": {  # Starts the nested dictionary for 3-month analysis results
-            "annualised_expected_return": metrics_3m["annualised_expected_return"],  # Stores the 3-month annualised expected return
-            "annualised_volatility": metrics_3m["annualised_volatility"],  # Stores the 3-month annualised volatility
-            "sharpe_like": metrics_3m["sharpe_like"],  # Stores the 3-month Sharpe-like ratio
-            "latest_price": metrics_3m["latest_price"],  # Stores the most recent price in the 3-month data
-            "price_start_date": metrics_3m["price_start_date"],  # Stores the first date in the 3-month price series
-            "price_end_date": metrics_3m["price_end_date"],  # Stores the last date in the 3-month price series
-            "price_observations": metrics_3m["price_observations"],  # Stores how many price observations exist in the 3-month series
-            "return_start_date": metrics_3m["return_start_date"],  # Stores the first date in the 3-month return series
-            "return_end_date": metrics_3m["return_end_date"],  # Stores the last date in the 3-month return series
-            "return_observations": metrics_3m["return_observations"],  # Stores how many return observations exist in the 3-month series
-            "forecast": {  # Starts the nested forecast block inside the 3-month analysis block
-                "quarterly_return": forecast_3m["quarterly_return"],  # Stores the quarterly return implied by the 3-month expected return
-                "q1_expected_price": forecast_3m["q1_expected_price"],  # Stores the projected price for quarter 1
-                "q2_expected_price": forecast_3m["q2_expected_price"],  # Stores the projected price for quarter 2
-                "q3_expected_price": forecast_3m["q3_expected_price"],  # Stores the projected price for quarter 3
-                "q4_expected_price": forecast_3m["q4_expected_price"],  # Stores the projected price for quarter 4
-            } 
-        }  
-    }  
+        },
+        "three_month": {
+            "annualised_expected_return": metrics_3m["annualised_expected_return"],
+            "annualised_volatility": metrics_3m["annualised_volatility"],
+            "sharpe_like": metrics_3m["sharpe_like"],
+            "latest_price": metrics_3m["latest_price"],
+            "price_start_date": metrics_3m["price_start_date"],
+            "price_end_date": metrics_3m["price_end_date"],
+            "price_observations": metrics_3m["price_observations"],
+            "return_start_date": metrics_3m["return_start_date"],
+            "return_end_date": metrics_3m["return_end_date"],
+            "return_observations": metrics_3m["return_observations"],
+            "forecast": {
+                "quarterly_return": forecast_3m["quarterly_return"],
+                "q1_expected_price": forecast_3m["q1_expected_price"],
+                "q2_expected_price": forecast_3m["q2_expected_price"],
+                "q3_expected_price": forecast_3m["q3_expected_price"],
+                "q4_expected_price": forecast_3m["q4_expected_price"],
+            }
+        }
+    }
 
-# ============================================================  
-# MARKET DASHBOARD DATA  # This section defines the ticker universe and dashboard-building logic
-# ============================================================  
-
-MASTER_TICKERS = {  # Creates a dictionary that groups tickers into categories for the dashboard universe
-    "fixed_income": [  # Starts the fixed income category list
-        "SHY", "IEF", "TLT", "BND", "AGG", "TIP", "LQD", "HYG", "VGIT", "VCIT",  # Treasury, aggregate bond, credit, and duration-related ETFs
-        "MINT", "BIL", "JPST", "SCHR", "SCHZ", "IGIB", "SPTI", "GOVT", "BSV", "VGSH"  # More bond and short-duration fixed income ETFs
-    ], 
-
+# ============================================================
+# MARKET DASHBOARD SECTION
+# Used by market_dashboard.html
+# ============================================================
+MASTER_TICKERS = {
+    "fixed_income": [
+        "SHY", "IEF", "TLT", "BND", "AGG", "TIP", "LQD", "HYG", "VGIT", "VCIT",
+        "MINT", "BIL", "JPST", "SCHR", "SCHZ", "IGIB", "SPTI", "GOVT", "BSV", "VGSH"
+    ],
     "defensive_equities": [
         "XLP", "XLV", "XLU", "PG", "KO", "PEP", "JNJ", "MRK", "PFE",
         "WMT", "MCD", "CL", "KMB", "DUK", "SO", "NEE", "GIS", "MDT", "HSY", "EL"
     ],
-
     "core_equities": [
         "AAPL", "MSFT", "AMZN", "GOOGL", "META", "JPM", "V", "MA", "UNH",
         "HD", "ADBE", "CRM", "ORCL", "CSCO", "INTU", "AVGO", "NFLX",
         "QCOM", "LIN", "TXN", "HON", "CAT", "IBM", "AMGN", "NOW", "BKNG",
         "AXP", "GS", "BLK", "SPGI"
     ],
-
     "growth_equities": [
         "TSLA", "NVDA", "AMD", "SHOP", "SQ", "UBER", "PANW", "CRWD", "SNOW", "PLTR",
         "MDB", "DDOG", "NET", "ZS", "TEAM", "ABNB", "MELI", "SE", "TTD", "ROKU",
         "ARKK", "QQQ", "SMH", "SOXX", "IWF", "VUG", "XLK", "FTEC", "SCHG", "MGK"
     ],
-
     "international_equities": [
         "VEA", "IEFA", "EWG", "EWQ", "EWI", "EWJ", "EWS", "EWA", "EWU", "EWP",
         "VGK", "EZU", "FEZ", "AAXJ", "VWO", "EEM", "INDA", "EWY", "MCHI", "FXI",
         "EWZ", "EWT", "EIDO", "EPHE", "EZA", "ERUS", "EWC", "EWL", "EWD", "EWN"
     ],
-
     "alternatives": [
         "GLD", "SLV", "VNQ", "REET", "SCHH", "REM", "DBC", "PDBC", "USO", "IAU",
         "VNQI", "RWO", "FTGC", "COMT", "GSG", "DBA", "UUP", "FXE", "FXF", "FXY",
@@ -878,125 +872,110 @@ MASTER_TICKERS = {  # Creates a dictionary that groups tickers into categories f
 }
 
 
-def build_market_rows():  # Defines a function that builds the full list of dashboard rows shown in market_dashboard.html
-    dashboard_tickers = sorted({  # Creates a sorted list of unique tickers from all categories in MASTER_TICKERS
-        ticker  # This is the individual ticker symbol that will be collected
-        for group in MASTER_TICKERS.values()  # Loops through each list of tickers in the dictionary values
-        for ticker in group  # Loops through each ticker inside each category list
-    }) 
 
-    rows = []  # Creates an empty list that will store one processed dashboard row per ticker
+def build_market_rows():
+    dashboard_tickers = sorted({
+        ticker
+        for group in MASTER_TICKERS.values()
+        for ticker in group
+    })
 
-    batch_data = yf.download(  # Starts a batch Yahoo Finance download so all tickers are downloaded together for efficiency
-        tickers=dashboard_tickers,  # Sends the full ticker universe to yfinance in one call
-        period="1y",  # Requests one year of historical data for all dashboard tickers
-        auto_adjust=True,  # Uses adjusted prices so splits and dividends are reflected in the price series
-        progress=False,  # Hides the download progress bar so terminal output stays cleaner
-        group_by="ticker",  # Organises downloaded columns by ticker, which is useful for multi-ticker downloads
-        threads=True  # Allows parallel requests internally, which can improve speed
-    )  
+    rows = []
 
-    for ticker in dashboard_tickers:  # Loops through every ticker in the dashboard universe so each one gets its own dashboard row
-        metrics_1y = compute_metrics_from_batch(batch_data, ticker)  # Calculates annualised return, volatility, Sharpe-like ratio, and other metrics from the batch data for this ticker
+    batch_data = yf.download(
+        tickers=dashboard_tickers,
+        period="1y",
+        auto_adjust=True,
+        progress=False,
+        group_by="ticker",
+        threads=True
+    )
 
-        sector = "Unknown"  # Sets a default sector value because the dashboard is running in fast mode and is not fetching .info metadata
-        industry = "Unknown"  # Sets a default industry value for the same reason
-        market_cap = None  # Sets raw market cap to None because market-cap metadata is not being fetched here
-        market_cap_display = "N/A"  # Sets display-friendly market-cap text to N/A so the table still has a consistent value
-        beta = None  # Sets beta to None because the dashboard fast mode does not calculate or fetch beta metadata
-        pe_ratio = None  # Sets P/E ratio to None because valuation metadata is not being fetched in this version
-        dividend_yield = None  # Sets dividend yield to None because dividend metadata is also being skipped
-        # Fast mode: skip slow per-ticker metadata requests from yfinance .info  # Explains that individual metadata lookups were intentionally removed to make the dashboard faster
-        # The default values set above will be used instead.  # Explains that placeholder values such as Unknown and N/A remain active in the table
+    for ticker in dashboard_tickers:
+        metrics_1y = compute_metrics_from_batch(batch_data, ticker)
 
-        decision_pack = score_and_decide(  # Calls the scoring function to translate the ticker's 1-year metrics into a score, decision, weight, and tag
-            expected_return=metrics_1y["annualised_expected_return"],  # Passes the annualised expected return into the scoring model
-            volatility=metrics_1y["annualised_volatility"],  # Passes the annualised volatility into the scoring model
-            sharpe_like=metrics_1y["sharpe_like"],  # Passes the Sharpe-like ratio into the scoring model
-            beta=beta  # Passes beta into the scoring model, which is currently None in fast mode
-        ) 
+        beta = None  # Still unavailable in fast dashboard mode
 
-        expected_return_percent = round(metrics_1y["annualised_expected_return"] * 100, 2)  # Converts expected return from decimal format to percentage format and rounds to 2 decimals
-        volatility_percent = round(metrics_1y["annualised_volatility"] * 100, 2)  # Converts volatility from decimal format to percentage format and rounds to 2 decimals
-        sharpe_like_value = round(metrics_1y["sharpe_like"], 2)  # Rounds the Sharpe-like ratio to 2 decimal places for cleaner display
+        decision_pack = score_and_decide(
+            expected_return=metrics_1y["annualised_expected_return"],
+            volatility=metrics_1y["annualised_volatility"],
+            sharpe_like=metrics_1y["sharpe_like"],
+            beta=beta
+        )
 
-        ranking_score = (  # Starts a custom ranking formula used to sort securities in the dashboard
-            (metrics_1y["annualised_expected_return"] * 0.50)  # Gives 50% weight to expected return so higher-return securities rank better
-            + (metrics_1y["sharpe_like"] * 0.30)  # Gives 30% weight to risk-adjusted return so efficient names rank better
-            - (metrics_1y["annualised_volatility"] * 0.20)  # Subtracts 20% of volatility so riskier names are penalised
-        ) 
+        expected_return_percent = round(metrics_1y["annualised_expected_return"] * 100, 2)
+        volatility_percent = round(metrics_1y["annualised_volatility"] * 100, 2)
+        sharpe_like_value = round(metrics_1y["sharpe_like"], 2)
+        latest_price = round(metrics_1y["latest_price"], 2)
 
-        is_low_risk = (  # Starts the logic for the low-risk preset filter used in the market dashboard
-            (beta is not None and beta <= 1.0)  # Requires beta to exist and be less than or equal to 1.0, meaning market sensitivity is not above the benchmark
-            and metrics_1y["annualised_volatility"] <= 0.18  # Also requires volatility to be 18% or below
-            and decision_pack["decision"] != "NO — hold as cash instead"  # Excludes securities that were rejected by the scoring model
-        ) 
+        ranking_score = (
+            (metrics_1y["annualised_expected_return"] * 0.50)
+            + (metrics_1y["sharpe_like"] * 0.30)
+            - (metrics_1y["annualised_volatility"] * 0.20)
+        )
 
-        is_high_conviction = (  # Starts the logic for the high-conviction preset filter
-            decision_pack["decision"] == "YES — high conviction"  # Requires the scoring model to classify the security as a high-conviction idea
-            and decision_pack["score"] >= 7  # Also requires the score to be at least 7
-        ) 
+        is_low_risk = (
+            metrics_1y["annualised_volatility"] <= 0.18
+            and decision_pack["decision"] != "NO — hold as cash instead"
+        )
 
-        is_income_candidate = (  # Starts the logic for the income/defensive preset filter
-            (dividend_yield is not None and dividend_yield >= 1.5)  # Includes names with a dividend yield of at least 1.5% if dividend data exists
-            or ticker in {"IEF", "SHY", "AGG", "BND", "TIP", "XLP", "XLV", "XLU"}  # Also manually includes bond and defensive ETFs that are logically income/defensive candidates
-        ) 
+        is_high_conviction = (
+            decision_pack["decision"] == "YES — high conviction"
+            and decision_pack["score"] >= 7
+        )
 
-        is_best_ranked = (  # Starts the logic for identifying best-ranked securities
-            decision_pack["score"] >= 5  # Requires a score of at least 5
-            and metrics_1y["sharpe_like"] >= 0.3  # Requires a Sharpe-like ratio of at least 0.3
-        ) 
+        is_income_candidate = ticker in {"IEF", "SHY", "AGG", "BND", "TIP", "XLP", "XLV", "XLU"}
 
-        is_core_holding = (  # Starts the logic for the core-holding preset
-            decision_pack["decision"] == "YES — core holding"  # Returns True only when the decision says the security is a core holding
-        ) 
+        is_best_ranked = (
+            decision_pack["score"] >= 5
+            and metrics_1y["sharpe_like"] >= 0.3
+        )
 
-        is_satellite = (  # Starts the logic for the satellite preset
-            decision_pack["decision"] == "YES — satellite"  # Returns True only when the decision says the security is a satellite position
-        ) 
+        is_core_holding = decision_pack["decision"] == "YES — core holding"
+        is_satellite = decision_pack["decision"] == "YES — satellite"
+        is_exploratory = decision_pack["decision"] == "LIMITED — high risk / exploratory"
+        is_cash_candidate = decision_pack["decision"] == "NO — hold as cash instead"
 
-        is_exploratory = (  # Starts the logic for the exploratory preset
-            decision_pack["decision"] == "LIMITED — high risk / exploratory"  # Returns True only when the decision says the position is exploratory or high risk
-        ) 
-
-        is_cash_candidate = (  # Starts the logic for the cash preset
-            decision_pack["decision"] == "NO — hold as cash instead"  # Returns True only when the security is rejected and cash is preferred
-        ) 
-
-        rows.append({  # Appends one completed row dictionary to the rows list so it can later be sent to the template
-            "ticker": ticker,  # Stores the ticker symbol for this dashboard row
-            "sector": sector,  # Stores the sector value, currently Unknown in fast mode
-            "industry": industry,  # Stores the industry value, currently Unknown in fast mode
-            "market_cap": market_cap,  # Stores raw market-cap value, currently None in fast mode
-            "market_cap_display": market_cap_display,  # Stores user-friendly market-cap text shown in the HTML table
-            "beta": None if beta is None else round(beta, 2),  # Stores beta as None if missing, otherwise rounds it to 2 decimals
-            "pe_ratio": None if pe_ratio is None else round(pe_ratio, 2),  # Stores P/E as None if missing, otherwise rounds it to 2 decimals
-            "dividend_yield": dividend_yield,  # Stores dividend yield value, currently None in fast mode
-            "score": decision_pack["score"],  # Stores the numeric score returned by the scoring model
-            "decision": decision_pack["decision"],  # Stores the full investment decision text
-            "tag": decision_pack["tag"],  # Stores the short label used for display, such as High conviction or Diversifier
-            "suggested_weight": decision_pack["recommended_weight"],  # Stores the recommended weight text such as 6%, 3.5%, 3%, or Cash (5%)
-            "expected_return_percent": expected_return_percent,  # Stores expected return in percentage form for table display
-            "volatility": volatility_percent,  # Stores volatility in percentage form for table display
-            "sharpe_like": sharpe_like_value,  # Stores the rounded Sharpe-like ratio for display
-            "ranking_score": round(ranking_score, 3),  # Stores the ranking score rounded to 3 decimals so sorting is cleaner
-            "is_low_risk": is_low_risk,  # Stores boolean used by the Low Risk smart preset
-            "is_high_conviction": is_high_conviction,  # Stores boolean used by the High Conviction smart preset
-            "is_core_holding": is_core_holding,  # Stores boolean used by the Core Holdings smart preset
-            "is_satellite": is_satellite,  # Stores boolean used by the Satellite / Diversifiers smart preset
-            "is_exploratory": is_exploratory,  # Stores boolean used by the Exploratory / High Risk smart preset
-            "is_income_candidate": is_income_candidate,  # Stores boolean used by the Income / Defensive smart preset
-            "is_best_ranked": is_best_ranked,  # Stores boolean used by the Best Ranked smart preset
-            "is_cash_candidate": is_cash_candidate,  # Stores boolean used by the Cash smart preset
+        rows.append({
+            "ticker": ticker,
+            "latest_price": latest_price,
+            "score": decision_pack["score"],
+            "decision": decision_pack["decision"],
+            "tag": decision_pack["tag"],
+            "suggested_weight": decision_pack["recommended_weight"],
+            "expected_return_percent": expected_return_percent,
+            "volatility": volatility_percent,
+            "sharpe_like": sharpe_like_value,
+            "ranking_score": round(ranking_score, 3),
+            "is_low_risk": is_low_risk,
+            "is_high_conviction": is_high_conviction,
+            "is_core_holding": is_core_holding,
+            "is_satellite": is_satellite,
+            "is_exploratory": is_exploratory,
+            "is_income_candidate": is_income_candidate,
+            "is_best_ranked": is_best_ranked,
+            "is_cash_candidate": is_cash_candidate,
         })
 
-    rows.sort(key=lambda row: row["ranking_score"], reverse=True)  # Sorts all dashboard rows from highest ranking score to lowest so strongest names appear first
-    return rows  # Returns the fully built list of dashboard rows to the calling function
+    rows.sort(key=lambda row: row["ranking_score"], reverse=True)
+    return rows
+
+def get_cached_market_rows():
+    now = time.time()
+
+    if (
+        dashboard_cache["rows"] is None
+        or now - dashboard_cache["timestamp"] > DASHBOARD_CACHE_SECONDS
+    ):
+        dashboard_cache["rows"] = build_market_rows()
+        dashboard_cache["timestamp"] = now
+
+    return dashboard_cache["rows"]
 
 
-# ============================================================ 
+# ============================================================  # Decorative divider to separate the HTML page routes section
 # ROUTES → HTML PAGES  # This section contains Flask routes that return HTML templates
-# ============================================================ 
+# ============================================================  # Decorative divider closing the section title
 
 @app.route("/")  # Registers the root URL so visiting the site homepage triggers the home() function
 def home():  # Defines the Flask view function for the home page
@@ -1009,20 +988,8 @@ def criteria():  # Defines the Flask view function for the criteria page
         portfolio_choices=get_portfolio_choices(),  # Passes the dropdown-ready portfolio choice list into the Jinja template
         default_portfolio_key="scenario1",  # Passes scenario1 as the default selected portfolio in the dropdown
         default_portfolio_name=get_portfolio_display_name(PORTFOLIO_1)  # Passes the display name of PORTFOLIO_1 for default page text
-    )  
+    )  # Ends the render_template call
 
-def get_cached_market_rows():  # Defines a helper function that returns cached dashboard rows instead of rebuilding them every time
-    now = time.time()  # Stores the current Unix timestamp in seconds so cache age can be checked
-
-    if (  # Starts the cache-validation condition
-        dashboard_cache["rows"] is None  # Rebuilds the cache if no rows have ever been stored yet
-        or now - dashboard_cache["timestamp"] > DASHBOARD_CACHE_SECONDS  # Rebuilds the cache if the existing cache is older than the allowed cache duration
-    ):  # Ends the cache condition
-        dashboard_cache["rows"] = build_market_rows()  # Recomputes the dashboard rows and stores them in the cache
-        dashboard_cache["timestamp"] = now  # Updates the cache timestamp to the current time after rebuilding
-
-    return dashboard_cache["rows"]  # Returns the cached dashboard rows whether they were freshly built or already stored
-    
 @app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
 def market_dashboard():  # Defines the Flask view function for the dashboard page
     rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
@@ -1037,96 +1004,94 @@ def contact():  # Defines the Flask view function for the contact page
 def portfolio_profiles():  # Defines the Flask view function for the portfolio profiles page
     return render_template("portfolio_profiles.html", portfolios=PORTFOLIOS)  # Renders portfolio_profiles.html and passes the full PORTFOLIOS dictionary into the Jinja template
 
-
-# ============================================================  
-# ROUTES → API ENDPOINTS  # This section contains Flask routes that return JSON data instead of HTML
 # ============================================================ 
+# ROUTES → API ENDPOINTS  # This section contains Flask routes that return JSON data instead of HTML
+# ============================================================  
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    ticker = request.form.get("ticker", "").strip().upper()
+    portfolio_key = request.form.get("portfolio_key", "scenario1")
 
-@app.route("/analyze", methods=["POST"])  # Registers the /analyze endpoint and allows only POST requests because the frontend submits form data to it
-def analyze():  # Defines the Flask view function that handles stock analysis requests
-    ticker = request.form.get("ticker", "").strip().upper()  # Reads the ticker from submitted form data, removes extra spaces, and converts it to uppercase
-    portfolio_key = request.form.get("portfolio_key", "scenario1")  # Reads the selected portfolio_key from form data and defaults to scenario1 if missing
+    if portfolio_key not in PORTFOLIOS:
+        return jsonify({"error": "Invalid portfolio selected."}), 400
 
-    if portfolio_key not in PORTFOLIOS:  # Checks whether the submitted portfolio_key actually exists in the master portfolio dictionary
-        return jsonify({"error": "Invalid portfolio selected."}), 400  # Returns a JSON error with HTTP status 400 if the portfolio key is invalid
+    if not ticker:
+        return jsonify({"error": "Please select a ticker."}), 400
 
-    if not ticker:  # Checks whether the user failed to submit a ticker
-        return jsonify({"error": "Please select a ticker."}), 400  # Returns a JSON error with HTTP status 400 if the ticker is empty
+    try:
+        benchmark_ticker = PORTFOLIOS[portfolio_key]["ticker"]
+        result = analyze_stock(ticker, benchmark_ticker, portfolio_key)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
 
-    try:  # Starts a try block so unexpected analysis problems do not crash the application
-        benchmark_ticker = PORTFOLIOS[portfolio_key]["ticker"]  # Looks up the benchmark/reference ticker associated with the selected portfolio
-        result = analyze_stock(ticker, benchmark_ticker, portfolio_key)  # Calls the main analysis function using the selected ticker, benchmark, and portfolio
-        return jsonify(result)  # Returns the completed analysis result as JSON to the JavaScript frontend
-    except Exception as e:  # Catches unexpected errors during analysis
-        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500  # Returns a JSON error with HTTP status 500 if analysis fails unexpectedly
+@app.route("/add-to-portfolio", methods=["POST"])
+def add_to_portfolio():
+    data = request.get_json(force=True)
 
-@app.route("/add-to-portfolio", methods=["POST"])  # Registers the /add-to-portfolio endpoint and allows only POST because the frontend sends JSON data to it
-def add_to_portfolio():  # Defines the Flask view function that adds or updates a holding in a selected portfolio
-    data = request.get_json(force=True)  # Reads the incoming request body as JSON and forces parsing even if headers are imperfect
+    ticker = data.get("ticker")
+    portfolio_key = data.get("portfolio_key")
+    portfolio_name = data.get("portfolio_name")
+    recommended_weight = data.get("recommended_weight")
+    decision = data.get("decision")
+    tag = data.get("tag")
+    sector = data.get("sector")
+    industry = data.get("industry")
+    beta = data.get("beta")
 
-    ticker = data.get("ticker")  # Extracts the ticker value from the JSON payload
-    portfolio_key = data.get("portfolio_key")  # Extracts the selected portfolio key from the JSON payload
-    portfolio_name = data.get("portfolio_name")  # Extracts the human-readable portfolio name from the JSON payload
-    recommended_weight = data.get("recommended_weight")  # Extracts the recommended weight text from the JSON payload
-    decision = data.get("decision")  # Extracts the decision text from the JSON payload
-    tag = data.get("tag")  # Extracts the short display tag from the JSON payload
-    sector = data.get("sector")  # Extracts the sector metadata from the JSON payload
-    industry = data.get("industry")  # Extracts the industry metadata from the JSON payload
-    beta = data.get("beta")  # Extracts the beta value from the JSON payload
+    if not ticker or not portfolio_key or portfolio_key not in PORTFOLIOS:
+        return jsonify({"error": "Invalid stock or portfolio."}), 400
 
-    if not ticker or not portfolio_key or portfolio_key not in PORTFOLIOS:  # Validates that the ticker exists, the portfolio key exists, and the portfolio key is valid
-        return jsonify({"error": "Invalid stock or portfolio."}), 400  # Returns a JSON error with HTTP status 400 if validation fails
+    validation = validate_portfolio_addition(
+        portfolio_key=portfolio_key,
+        ticker=ticker,
+        recommended_weight=recommended_weight,
+        sector=sector,
+        industry=industry
+    )
 
-    validation = validate_portfolio_addition(  # Calls the portfolio-validation helper to check weight limits, mandate restrictions, and warnings
-        portfolio_key=portfolio_key,  # Passes the selected portfolio key into the validation function
-        ticker=ticker,  # Passes the ticker into the validation function
-        recommended_weight=recommended_weight,  # Passes the suggested weight text so it can be parsed and checked
-        sector=sector,  # Passes the sector so ESG and mandate checks can use it
-        industry=industry  # Passes the industry so ESG and mandate checks can use it
-    )  
+    if validation["errors"]:
+        return jsonify({
+            "error": validation["errors"],
+            "warnings": validation["warnings"]
+        }), 400
 
-    if validation["errors"]:  # Checks whether the validation helper found hard errors that should block the add/update action
-        return jsonify({  # Starts building a JSON error response
-            "error": validation["errors"],  # Returns the list of hard validation errors
-            "warnings": validation["warnings"]  # Also returns any warnings found during validation
-        }), 400  # Sends the JSON back with HTTP status 400 because the request is not valid
+    existing_stock = next(
+        (stock for stock in selected_stocks[portfolio_key] if stock["ticker"] == ticker),
+        None
+    )
 
-    existing_stock = next(  # Starts a search for an already-existing holding with the same ticker in the selected portfolio
-        (stock for stock in selected_stocks[portfolio_key] if stock["ticker"] == ticker),  # Generator expression returns the first matching holding if it exists
-        None  # Returns None if the ticker is not already in the selected portfolio
-    )  
+    payload = {
+        "portfolio_name": portfolio_name,
+        "ticker": ticker,
+        "recommended_weight": recommended_weight,
+        "weight_decimal": validation["weight_decimal"],
+        "decision": decision,
+        "tag": tag,
+        "sector": sector,
+        "industry": industry,
+        "beta": beta
+    }
 
-    payload = {  # Builds the holding dictionary that will be saved in selected_stocks
-        "portfolio_name": portfolio_name,  # Stores the human-readable portfolio name
-        "ticker": ticker,  # Stores the ticker symbol
-        "recommended_weight": recommended_weight,  # Stores the suggested position-size text such as 6% or 3.5%
-        "weight_decimal": validation["weight_decimal"],  # Stores the parsed decimal weight returned by the validation function
-        "decision": decision,  # Stores the decision label for this holding
-        "tag": tag,  # Stores the short UI tag
-        "sector": sector,  # Stores the sector metadata
-        "industry": industry,  # Stores the industry metadata
-        "beta": beta  # Stores the beta value
-    }  
+    if existing_stock:
+        existing_stock.update(payload)
+        message = f"{ticker} updated in portfolio."
+    else:
+        selected_stocks[portfolio_key].append(payload)
+        message = f"{ticker} added to portfolio."
 
-    if existing_stock:  # Checks whether this ticker is already present in the selected portfolio
-        existing_stock.update(payload)  # Updates the existing stored holding with the new payload values
-        message = f"{ticker} updated in portfolio."  # Creates a confirmation message telling the frontend the holding was updated
-    else:  # Runs when the ticker does not already exist in the selected portfolio
-        selected_stocks[portfolio_key].append(payload)  # Appends the new holding payload to the selected portfolio list
-        message = f"{ticker} added to portfolio."  # Creates a confirmation message telling the frontend the holding was newly added
-
-    return jsonify({  # Starts building the success JSON response
-        "message": message,  # Returns the add/update confirmation message
-        "warnings": validation["warnings"],  # Returns any warnings that still need to be shown to the user
-        "portfolio": build_grouped_portfolio_payload()  # Returns refreshed grouped portfolio data so the frontend can redraw current holdings immediately
-    }) 
+    return jsonify({
+        "message": message,
+        "warnings": validation["warnings"],
+        "portfolio": build_grouped_portfolio_payload()
+    })
 
 @app.route("/portfolio-stocks")  # Registers the /portfolio-stocks endpoint used by JavaScript to fetch grouped portfolio holdings
 def portfolio_stocks():  # Defines the Flask view function for returning current selected holdings
     return jsonify(build_grouped_portfolio_payload())  # Returns the grouped holdings and summary metrics as JSON
 
-# ============================================================ 
+# ============================================================  # Decorative divider to separate route code from the final app runner
 # RUN APP  # This section runs the Flask development server when the file is executed directly
-# ============================================================ 
+# ============================================================  # Decorative divider closing the final section title
 if __name__ == "__main__":  # Checks whether this file is being run directly rather than imported into another Python file
     app.run(debug=True)  # Starts the Flask development server with debug mode enabled so code changes and errors are easier to test

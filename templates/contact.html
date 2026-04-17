@@ -1,32 +1,32 @@
-<!DOCTYPE html> 
-<html lang="en"> 
+<!DOCTYPE html> <!-- Declares the document as HTML5 so the browser uses modern rendering standards -->
+<html lang="en"> <!-- Root HTML element; sets the language to English which helps accessibility tools and SEO -->
 <head> <!-- Head section contains metadata and links to external resources -->
     <meta charset="UTF-8"> <!-- Defines character encoding as UTF-8 so all text (including symbols) displays correctly -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the page responsive by controlling layout scaling on mobile devices -->
     <title>Contact</title> <!-- Sets the page title that appears in the browser tab -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links the external CSS file using Flask's url_for() so the correct static path is generated -->
-</head>
+</head> <!-- Ends the head section -->
 
-<body>
+<body> <!-- Starts the visible content section of the webpage -->
 <div class="container"> <!-- Main wrapper div; "container" class is used in CSS to control layout width, spacing, and alignment -->
 
     {% set active_page = 'contact' %} <!-- Jinja variable that sets the current page name; used by the navbar to highlight the active link -->
     {% include '_navbar.html' %} <!-- Includes the reusable navbar template so navigation appears on this page -->
 
-    <div class="card"> 
+    <div class="card"> <!-- Creates a styled content box using the "card" class defined in CSS -->
         <h1>Contact</h1> <!-- Main heading for the page -->
         <p> <!-- Paragraph explaining the purpose of the project -->
             This project was developed as a portfolio management decision-support application
             using Flask, HTML, CSS, JavaScript, and Yahoo Finance data.
-        </p> 
+        </p> <!-- Ends the paragraph -->
         <p> <!-- Second paragraph providing more context about the application -->
             It demonstrates how a portfolio manager can combine client mandate information,
             investment decision criteria, market analysis, and portfolio construction logic
             into a simple workflow.
-        </p> 
-    </div> 
+        </p> <!-- Ends the paragraph -->
+    </div> <!-- Ends the first card -->
 
-    <div class="card"> 
+    <div class="card"> <!-- Creates another styled card section -->
         <h2>Project Focus</h2> <!-- Subheading introducing the list of key features -->
         <ul> <!-- Unordered list to display project focus points -->
             <li>Portfolio-specific suitability analysis</li> <!-- List item describing analysis aligned to portfolio mandates -->
@@ -34,11 +34,11 @@
             <li>Position sizing decisions</li> <!-- List item describing how weights are assigned to assets -->
             <li>Market screening and ranking</li> <!-- List item describing filtering and ranking securities -->
             <li>Portfolio construction support</li> <!-- List item describing how the tool helps build portfolios -->
-        </ul> 
-    </div> 
+        </ul> <!-- Ends the unordered list -->
+    </div> <!-- Ends the second card -->
 
-</div> 
+</div> <!-- Ends the container div wrapping all page content -->
 
 <script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links the JavaScript file using Flask url_for(); placed at the end for better page load performance -->
-</body> 
-</html> 
+</body> <!-- Ends the body section -->
+</html> <!-- Ends the HTML document -->

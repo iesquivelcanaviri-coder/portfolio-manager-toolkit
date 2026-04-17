@@ -1,223 +1,185 @@
-<!DOCTYPE html> 
-<html lang="en">
-
-<!-- ========================================================= --> 
-<!-- HEAD SECTION (Metadata + CSS) --> <!-- Label for the head section so it is easier to understand the structure of the file when reviewing or editing -->
-<!-- ========================================================= --> 
-
-<head> <!-- Starts the head section, which stores metadata, the page title, and links to external files like CSS; content here is not shown directly on the page -->
-    <meta charset="UTF-8"> <!-- Sets character encoding to UTF-8 so letters, punctuation, symbols, and special characters display correctly; this is especially important because your file includes characters like em dashes and percent symbols -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the layout responsive by telling mobile browsers to match the page width to the device width and use a normal zoom level -->
-    <title>Market Dashboard</title> <!-- Sets the text shown in the browser tab and helps users identify the page when multiple tabs are open -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links the external CSS file; Flask's Jinja expression url_for('static', ...) dynamically generates the correct path to the stylesheet, which is safer than hardcoding a file path -->
-</head> 
+<!DOCTYPE html> <!-- Declares HTML5 document type so browser uses modern rendering standards -->
+<html lang="en"> <!-- Root HTML element and sets language to English for accessibility and SEO -->
 
 <!-- ========================================================= -->
-<!-- BODY SECTION (Visible Page Content) --> <!-- Label explaining that the next section contains all content visible to the user -->
+<!-- HEAD SECTION (Metadata + CSS) -->
 <!-- ========================================================= -->
+<head> <!-- Contains metadata and external resource links -->
+    <meta charset="UTF-8"> <!-- Defines UTF-8 encoding so all characters display correctly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures responsive design on mobile devices -->
+    <title>Market Dashboard</title> <!-- Title shown in browser tab -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links CSS file using Flask static routing -->
+</head> <!-- End of head section -->
 
-<body> <!-- Starts the body section, which contains everything the user actually sees on the page -->
-<div class="container"> <!-- Main layout wrapper; the "container" CSS class usually controls width, spacing, and page alignment so all content stays neatly centered and consistent -->
+<!-- ========================================================= -->
+<!-- BODY SECTION (Visible Page Content) -->
+<!-- ========================================================= -->
+<body> <!-- Begins visible content -->
+<div class="container"> <!-- Main wrapper container for consistent layout and spacing -->
 
-    {% set active_page = 'market_dashboard' %} <!-- Jinja line that creates a variable called active_page and sets it to this page name; the navbar template uses this variable to highlight the current page link -->
-    {% include '_navbar.html' %} <!-- Jinja include that inserts the reusable navbar file here; this avoids repeating the same navigation code on every page -->
+    {% set active_page = 'market_dashboard' %} <!-- Sets current page so navbar highlights active link -->
+    {% include '_navbar.html' %} <!-- Includes reusable navbar template -->
 
-    <h1>Market Dashboard</h1> <!-- Main page heading; h1 is the top-level heading and tells both users and search engines what the page is mainly about -->
+    <h1>Market Dashboard</h1> <!-- Main page heading -->
 
     <!-- ========================================================= -->
-    <!-- DASHBOARD EXPLANATION SECTION --> <!-- Label explaining that this section introduces the dashboard and explains how it should be used -->
+    <!-- DASHBOARD EXPLANATION SECTION -->
     <!-- ========================================================= -->
+    <div class="card"> <!-- Card container for explanation content -->
+        <h2>What this dashboard does</h2> <!-- Section title -->
+        <p>
+            This page helps a portfolio manager screen securities before moving to detailed analysis.
+            It is designed to reduce the list quickly by applying return, volatility, ranking, and conviction filters.
+        </p>
 
-    <div class="card"> <!-- Opens a styled content card; the "card" class is likely defined in CSS to add padding, background, border, or shadow -->
-        <h2>What this dashboard does</h2> <!-- Section heading for the explanatory introduction; h2 is used because it is a subsection under the main page heading -->
-        <p> <!-- Starts a paragraph block used to explain the purpose of the dashboard in normal readable text -->
-            This page helps a portfolio manager screen securities before moving to detailed analysis. <!-- Sentence explaining that the dashboard acts as a first screening stage before deeper research -->
-            It is designed to reduce the list quickly by applying risk, return, valuation, and conviction filters. <!-- Sentence explaining the practical workflow benefit: narrowing a large list of securities using financial decision rules -->
-        </p> 
-        <h3>What each smart preset means</h3> <!-- Subheading introducing the explanations of the filter preset buttons; h3 is used because this belongs inside the broader explanation card -->
-        <p><strong>Low Risk:</strong> highlights more stable securities with lower market sensitivity. Typically includes assets with beta at or below 1 and moderate volatility. These are commonly used for capital preservation, income generation, or defensive positioning within a portfolio.</p> <!-- Paragraph explaining the low-risk preset; the <strong> tag makes the label bold so users can scan the meaning quickly -->
-        <p><strong>High Conviction (6% position):</strong> identifies the strongest investment ideas based on expected return, volatility, and risk-adjusted performance. These are high-confidence opportunities where the manager allocates more capital.</p> <!-- Paragraph explaining that the high-conviction preset is for stronger ideas that justify a larger portfolio weight -->
-        <p><strong>Core Holdings (3.5% position):</strong> represents stable, well-balanced investments that form the foundation of the portfolio.</p> <!-- Paragraph explaining core holdings as the steady central positions that support the main portfolio structure -->
-        <p><strong>Satellite / Diversifiers (3% position):</strong> includes supporting positions used to enhance diversification or gain exposure to specific sectors.</p> <!-- Paragraph explaining satellite holdings as smaller supporting positions rather than the main portfolio anchor -->
-        <p><strong>Exploratory / High Risk (1–2% position):</strong> captures higher-risk opportunities with smaller allocations to control downside risk.</p> <!-- Paragraph explaining why riskier ideas are assigned smaller weights -->
-        <p><strong>Income / Defensive:</strong> focuses on securities providing stability or income such as bonds and defensive sectors.</p> <!-- Paragraph explaining the income and defensive preset, which is useful for lower-risk strategies -->
-        <p><strong>Best Ranked:</strong> highlights securities with strong scores and acceptable risk-adjusted returns.</p> <!-- Paragraph explaining that this preset focuses on the strongest combined scoring results -->
-        <p><strong>Cash (5% allocation):</strong> represents holding cash when no suitable investments are found or to manage risk.</p> <!-- Paragraph explaining that cash is treated as an active portfolio decision rather than doing nothing -->
-    </div> 
+        <h3>What each smart preset means</h3> <!-- Subsection explaining filter presets -->
 
-    <!-- ========================================================= --> 
-    <!-- FILTER SECTION --> <!-- Label showing that the next block contains user input controls for filtering the dashboard -->
-    <!-- ========================================================= --> 
+        <p><strong>Low Risk:</strong> highlights more stable securities with lower market sensitivity. Typically includes assets with beta at or below 1 and moderate volatility. These are commonly used for capital preservation, income generation, or defensive positioning within a portfolio.</p> <!-- Explains low-risk preset -->
 
-    <div class="card"> <!-- Opens the filter card that groups all filtering tools into one styled box -->
-        <h2>Smart Filters</h2> <!-- Section heading for the filter controls -->
+        <p><strong>High Conviction (6% position):</strong> identifies the strongest investment ideas based on expected return, volatility, and risk-adjusted performance. These are high-confidence opportunities where the manager allocates more capital.</p> <!-- Explains high conviction -->
 
-        <div class="filters-grid"> <!-- Opens a wrapper for the filter controls; the CSS class probably arranges these controls in a grid layout so they line up neatly -->
+        <p><strong>Core Holdings (3.5% position):</strong> represents stable, well-balanced investments that form the foundation of the portfolio.</p> <!-- Explains core holdings -->
 
-            <div> <!-- Wrapper for the ticker filter so the label and dropdown stay grouped together -->
-                <label for="ticker-filter">Ticker</label> <!-- Label connected to the ticker dropdown through the matching "for" and "id" values, improving accessibility and click behaviour -->
-                <select id="ticker-filter"> <!-- Dropdown input used by JavaScript to filter the table by ticker symbol -->
-                    <option value="">All tickers</option> <!-- Default dropdown option with an empty value, meaning no ticker filter is applied -->
-                    {% for ticker in rows | map(attribute='ticker') | list | sort %} <!-- Jinja loop that reads all tickers from the backend rows data, extracts just the ticker field, converts it to a list, and sorts it alphabetically before output -->
-                    <option value="{{ ticker }}">{{ ticker }}</option> <!-- Creates one dropdown option for each ticker; the value is used in filtering logic and the visible text shows the same ticker to the user -->
-                    {% endfor %} 
-                </select> 
-            </div> 
+        <p><strong>Satellite / Diversifiers (3% position):</strong> includes supporting positions used to enhance diversification or gain exposure to specific sectors.</p> <!-- Explains satellite -->
 
-            <div> <!-- Wrapper for the sector filter -->
-                <label for="sector-filter">Sector</label> <!-- Label for the sector dropdown -->
-                <select id="sector-filter"> <!-- Dropdown used to filter table rows by sector -->
-                    <option value="">All sectors</option> <!-- Default option meaning no sector filtering -->
-                    {% for sector in rows | map(attribute='sector') | unique | list | sort %} <!-- Jinja loop that extracts sector values from all rows, removes duplicates using unique, converts to a list, and sorts alphabetically -->
-                    <option value="{{ sector }}">{{ sector }}</option> <!-- Creates one dropdown option per unique sector -->
-                    {% endfor %} 
-                </select> 
-            </div> 
+        <p><strong>Exploratory / High Risk (1–2% position):</strong> captures higher-risk opportunities with smaller allocations to control downside risk.</p> <!-- Explains exploratory -->
 
-            <div> <!-- Wrapper for the decision filter -->
-                <label for="decision-filter">Decision</label> <!-- Label for the decision dropdown -->
-                <select id="decision-filter"> <!-- Dropdown used to filter rows by model decision classification -->
-                    <option value="">All decisions</option> <!-- Default option meaning show all decision categories -->
-                    <option value="YES — high conviction">YES — high conviction</option> <!-- Static option matching one of the backend decision labels exactly -->
-                    <option value="YES — core holding">YES — core holding</option> <!-- Static option for core holding rows -->
-                    <option value="YES — satellite">YES — satellite</option> <!-- Static option for satellite rows -->
-                    <option value="LIMITED — high risk / exploratory">LIMITED — high risk / exploratory</option> <!-- Static option for exploratory high-risk rows -->
-                    <option value="NO — hold as cash instead">NO — hold as cash instead</option> <!-- Static option for rows classified as cash alternatives -->
-                </select> 
-            </div> 
+        <p><strong>Income / Defensive:</strong> focuses on securities providing stability or income such as bonds and defensive sectors.</p> <!-- Explains income filter -->
 
-            <div> 
-                <label for="score-filter">Minimum Score</label> <!-- Label for minimum score selection -->
-                <select id="score-filter"> <!-- Dropdown used to set a minimum score threshold -->
-                    <option value="">Any</option> <!-- Default option meaning any score is accepted -->
-                    <option value="3">3+</option> <!-- Option meaning show rows with score 3 or greater -->
-                    <option value="5">5+</option> <!-- Option meaning show rows with score 5 or greater -->
-                    <option value="7">7+</option> <!-- Option meaning show rows with score 7 or greater -->
+        <p><strong>Best Ranked:</strong> highlights securities with strong scores and acceptable risk-adjusted returns.</p> <!-- Explains ranking -->
+
+        <p><strong>Cash (5% allocation):</strong> represents holding cash when no suitable investments are found or to manage risk.</p> <!-- Explains cash -->
+    </div> <!-- End explanation card -->
+
+    <!-- ========================================================= -->
+    <!-- FILTER SECTION -->
+    <!-- ========================================================= -->
+    <div class="card">
+    <h2>Smart Filters</h2>
+
+        <div class="filters-grid">
+
+            <div>
+                <label for="ticker-filter">Ticker</label>
+                <select id="ticker-filter">
+                    <option value="">All tickers</option>
+                    {% for ticker in rows | map(attribute='ticker') | list | sort %}
+                    <option value="{{ ticker }}">{{ ticker }}</option>
+                    {% endfor %}
                 </select>
-            </div> 
-
-            <div> 
-                <label for="beta-filter">Maximum Beta</label> <!-- Label for beta input -->
-                <input type="number" id="beta-filter" step="0.1" placeholder="e.g. 1.0"> <!-- Number input allowing decimal beta thresholds; step="0.1" lets the user adjust in tenths and the placeholder gives an example format -->
-            </div> 
-
-            <div> 
-                <label for="volatility-filter">Maximum Volatility %</label> <!-- Label for volatility input -->
-                <input type="number" id="volatility-filter" step="0.1" placeholder="e.g. 15"> <!-- Number input for a maximum volatility percentage threshold used by JavaScript filtering -->
-            </div> 
-
-            <div> 
-                <label for="sharpe-filter">Minimum Sharpe</label> <!-- Label for minimum Sharpe-like input -->
-                <input type="number" id="sharpe-filter" step="0.1" placeholder="e.g. 0.5"> <!-- Number input for minimum Sharpe-like value; user enters a floor rather than a ceiling -->
             </div>
 
-            <div> 
-                <label for="pe-filter">Maximum P/E</label> <!-- Label for P/E input -->
-                <input type="number" id="pe-filter" step="0.1" placeholder="e.g. 20"> <!-- Number input for a valuation ceiling based on price-to-earnings ratio -->
-            </div> 
+            <div>
+                <label for="decision-filter">Decision</label>
+                <select id="decision-filter">
+                    <option value="">All decisions</option>
+                    <option value="YES — high conviction">YES — high conviction</option>
+                    <option value="YES — core holding">YES — core holding</option>
+                    <option value="YES — satellite">YES — satellite</option>
+                    <option value="LIMITED — high risk / exploratory">LIMITED — high risk / exploratory</option>
+                    <option value="NO — hold as cash instead">NO — hold as cash instead</option>
+                </select>
+            </div>
 
-        </div> 
+            <div>
+                <label for="score-filter">Minimum Score</label>
+                <select id="score-filter">
+                    <option value="">Any</option>
+                    <option value="3">3+</option>
+                    <option value="5">5+</option>
+                    <option value="7">7+</option>
+                </select>
+            </div>
 
-        <!-- ========================================================= --> 
-        <!-- PRESET BUTTONS --> <!-- Label explaining that the next block contains quick filter buttons -->
-        <!-- ========================================================= --> 
+            <div>
+                <label for="volatility-filter">Maximum Volatility %</label>
+                <input type="number" id="volatility-filter" step="0.1" placeholder="e.g. 15">
+            </div>
 
-        <div class="filter-actions"> <!-- Container for preset action buttons; CSS likely controls spacing and wrapping of the buttons -->
-            <button type="button" id="preset-low-risk">Low Risk</button> <!-- Button that JavaScript listens to in order to apply the low-risk preset instantly -->
-            <button type="button" id="preset-high-conviction">High Conviction</button> <!-- Button that applies the high-conviction preset -->
-            <button type="button" id="preset-core">Core Holdings</button> <!-- Button that applies the core holdings preset -->
-            <button type="button" id="preset-satellite">Satellite / Diversifiers</button> <!-- Button that applies the satellite preset -->
-            <button type="button" id="preset-exploratory">Exploratory / High Risk</button> <!-- Button that applies the exploratory preset -->
-            <button type="button" id="preset-income">Income / Defensive</button> <!-- Button that applies the income/defensive preset -->
-            <button type="button" id="preset-best-ranked">Best Ranked</button> <!-- Button that applies the best-ranked preset -->
-            <button type="button" id="preset-cash">Cash</button> <!-- Button that applies the cash preset -->
-            <button type="button" id="clear-filters">Clear Filters</button> <!-- Button that resets all manual filters and active presets -->
-        </div> <!-- Ends preset button container -->
+            <div>
+                <label for="sharpe-filter">Minimum Sharpe</label>
+                <input type="number" id="sharpe-filter" step="0.1" placeholder="e.g. 0.5">
+            </div>
 
-        <p id="dashboard-summary" class="muted">Showing all securities.</p> <!-- Summary text placeholder; JavaScript updates this sentence dynamically after filtering so the user knows how many rows are visible -->
-    </div> 
+        </div>
+   <!-- ========================================================= -->
+        <!-- PRESET BUTTONS -->
+    <!-- ========================================================= -->
+        <div class="filter-actions">
+            <button type="button" id="preset-low-risk">Low Risk</button>
+            <button type="button" id="preset-high-conviction">High Conviction</button>
+            <button type="button" id="preset-core">Core Holdings</button>
+            <button type="button" id="preset-satellite">Satellite / Diversifiers</button>
+            <button type="button" id="preset-exploratory">Exploratory / High Risk</button>
+            <button type="button" id="preset-income">Income / Defensive</button>
+            <button type="button" id="preset-best-ranked">Best Ranked</button>
+            <button type="button" id="preset-cash">Cash</button>
+            <button type="button" id="clear-filters">Clear Filters</button>
+        </div>
+
+        <p id="dashboard-summary" class="muted">Showing all securities.</p>
+    </div>
+
 
     <!-- ========================================================= -->
-    <!-- TABLE SECTION --> <!-- Label for the market data table block -->
+    <!-- TABLE SECTION -->
     <!-- ========================================================= -->
+    <div class="card"> <!-- Card containing data table -->
+        <h2>Yahoo Finance Market Table</h2> <!-- Table title -->
 
-    <div class="card"> <!-- Opens the card that contains the full market table -->
-        <h2>Yahoo Finance Market Table</h2> <!-- Heading introducing the data table -->
+        <table class="table" id="market-table"> <!-- Table element with ID for JS interaction -->
+            <thead>
+                <tr>
+                    <th data-sort="ticker">Ticker</th>
+                    <th data-sort="latest_price">Latest Price</th>
+                    <th data-sort="expected_return_percent">Expected Return</th>
+                    <th data-sort="score">Score</th>
+                    <th data-sort="decision">Decision</th>
+                    <th data-sort="tag">Tag</th>
+                    <th data-sort="suggested_weight">Suggested Weight</th>
+                    <th data-sort="volatility">Volatility</th>
+                    <th data-sort="sharpe_like">Sharpe</th>
+                    <th data-sort="ranking_score">Ranking Score</th>
+                </tr>
+            </thead>
 
-        <table class="table" id="market-table"> <!-- Opens the table; the class applies CSS styling and the id allows JavaScript to target this specific table for sorting and filtering -->
-            <thead> <!-- Starts the table header section, which contains the column titles -->
-                <tr> <!-- Header row -->
-                    <th data-sort="ticker">Ticker</th> <!-- Header cell for ticker; custom data-sort attribute is used by JavaScript to know this column can be sorted -->
-                    <th data-sort="sector">Sector</th> <!-- Sortable sector column -->
-                    <th data-sort="industry">Industry</th> <!-- Sortable industry column -->
-                    <th data-sort="market_cap">Market Cap</th> <!-- Sortable market cap column -->
-                    <th data-sort="beta">Beta</th> <!-- Sortable beta column -->
-                    <th data-sort="pe_ratio">P/E Ratio</th> <!-- Sortable P/E column -->
-                    <th data-sort="dividend_yield">Dividend Yield</th> <!-- Sortable dividend yield column -->
-                    <th data-sort="expected_return_percent">Expected Return</th> <!-- Sortable expected return column -->
-                    <th data-sort="score">Score</th> <!-- Sortable score column -->
-                    <th data-sort="decision">Decision</th> <!-- Sortable decision column -->
-                    <th data-sort="tag">Tag</th> <!-- Sortable tag column -->
-                    <th data-sort="suggested_weight">Suggested Weight</th> <!-- Sortable weight suggestion column -->
-                    <th data-sort="volatility">Volatility</th> <!-- Sortable volatility column -->
-                    <th data-sort="sharpe_like">Sharpe</th> <!-- Sortable Sharpe-like column -->
-                    <th data-sort="ranking_score">Ranking Score</th> <!-- Sortable ranking score column -->
-                </tr> 
-            </thead> 
-
-    
             <tbody>
-                {% if rows and rows|length > 0 %}
-                    {% for row in rows %}
-                    <tr
-                        data-ticker="{{ row.ticker }}"
-                        data-sector="{{ row.sector }}"
-                        data-decision="{{ row.decision }}"
-                        data-score="{{ row.score if row.score is not none else '' }}"
-                        data-beta="{{ row.beta if row.beta is not none else '' }}"
-                        data-pe="{{ row.pe_ratio if row.pe_ratio is not none else '' }}"
-                        data-volatility="{{ row.volatility if row.volatility is not none else '' }}"
-                        data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}"
-                        data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}"
-                        data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}"
-                        data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}"
-                        data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}"
-                        data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}"
-                        data-satellite="{{ 'true' if row.is_satellite else 'false' }}"
-                        data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}"
-                        data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}"
-                        data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}"
-                        class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}"
-                    >
-                        <td>{{ row.ticker }}</td>
-                        <td>{{ row.sector }}</td>
-                        <td>{{ row.industry }}</td>
-                        <td>{{ row.market_cap_display }}</td>
-                        <td>{{ row.beta if row.beta is not none else "N/A" }}</td>
-                        <td>{{ row.pe_ratio if row.pe_ratio is not none else "N/A" }}</td>
-                        <td>{{ row.dividend_yield if row.dividend_yield is not none else "N/A" }}{% if row.dividend_yield is not none %}%{% endif %}</td>
-                        <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td>
-                        <td>{{ row.score if row.score is not none else "N/A" }}</td>
-                        <td>{{ row.decision }}</td>
-                        <td><span class="tag">{{ row.tag }}</span></td>
-                        <td>{{ row.suggested_weight }}</td>
-                        <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td>
-                        <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td>
-                        <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td>
-                    </tr>
-                    {% endfor %}
-                {% else %}
-                    <tr>
-                        <td colspan="15">No dashboard rows were returned from Flask.</td>
-                    </tr>
-                {% endif %}
+                {% for row in rows %}
+                <tr
+                    data-ticker="{{ row.ticker }}"
+                    data-decision="{{ row.decision }}"
+                    data-score="{{ row.score if row.score is not none else '' }}"
+                    data-volatility="{{ row.volatility if row.volatility is not none else '' }}"
+                    data-sharpe="{{ row.sharpe_like if row.sharpe_like is not none else '' }}"
+                    data-ranking="{{ row.ranking_score if row.ranking_score is not none else '' }}"
+                    data-income-candidate="{{ 'true' if row.is_income_candidate else 'false' }}"
+                    data-low-risk="{{ 'true' if row.is_low_risk else 'false' }}"
+                    data-high-conviction="{{ 'true' if row.is_high_conviction else 'false' }}"
+                    data-core-holding="{{ 'true' if row.is_core_holding else 'false' }}"
+                    data-satellite="{{ 'true' if row.is_satellite else 'false' }}"
+                    data-exploratory="{{ 'true' if row.is_exploratory else 'false' }}"
+                    data-cash-candidate="{{ 'true' if row.is_cash_candidate else 'false' }}"
+                    data-best-ranked="{{ 'true' if row.is_best_ranked else 'false' }}"
+                    class="{% if row.score is not none and row.score >= 7 %}score-high{% elif row.score is not none and row.score >= 5 %}score-medium{% elif row.score is not none %}score-low{% endif %}"
+                >
+                    <td>{{ row.ticker }}</td>
+                    <td>{{ row.latest_price if row.latest_price is not none else "N/A" }}</td>
+                    <td>{{ row.expected_return_percent if row.expected_return_percent is not none else "N/A" }}{% if row.expected_return_percent is not none %}%{% endif %}</td>
+                    <td>{{ row.score if row.score is not none else "N/A" }}</td>
+                    <td>{{ row.decision }}</td>
+                    <td><span class="tag">{{ row.tag }}</span></td>
+                    <td>{{ row.suggested_weight }}</td>
+                    <td>{{ row.volatility if row.volatility is not none else "N/A" }}{% if row.volatility is not none %}%{% endif %}</td>
+                    <td>{{ row.sharpe_like if row.sharpe_like is not none else "N/A" }}</td>
+                    <td>{{ row.ranking_score if row.ranking_score is not none else "N/A" }}</td>
+                </tr>
+                {% endfor %}
             </tbody>
+        </table> <!-- End table -->
+    </div> <!-- End table card -->
 
-        </table> 
-    </div> 
+</div> <!-- End container -->
 
-</div> 
-
-<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links the external JavaScript file; Flask generates the correct path, and this script powers features like filtering, sorting, and preset buttons -->
-</body> 
-</html> 
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links JS file for filtering, sorting, and interactivity -->
+</body> <!-- End body -->
+</html> <!-- End HTML document -->

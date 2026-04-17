@@ -1,181 +1,261 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Portfolio Profiles</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-<div class="container">
+<!DOCTYPE html> <!-- Declares the document type as HTML5 -->
+<html lang="en"> <!-- Starts the HTML document and sets the language to English -->
 
-    {% set active_page = 'portfolio_profiles' %}
-    {% include '_navbar.html' %}
+<!-- ============================================================ -->
+<!-- HEAD SECTION -->
+<!-- ============================================================ -->
+<head> <!-- Starts the head section which contains page settings -->
+    <meta charset="UTF-8"> <!-- Sets character encoding so text displays correctly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the page responsive on different screen sizes -->
+    <title>Portfolio Profiles</title> <!-- Sets the page title shown in the browser tab -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links the external CSS stylesheet -->
+</head> <!-- Ends the head section -->
 
-    <div class="card">
-        <h1>Portfolio Profiles and Manager Workflow</h1>
-        <p>
-            This page breaks down each portfolio profile and shows the type of review a portfolio
-            manager would complete before making an investment decision. The goal is to assess
-            suitability, mandate fit, risk tolerance, constraints, and implementation priorities
-            before adding any new security to the portfolio.
-        </p>
-    </div>
+<!-- ============================================================ -->
+<!-- BODY SECTION -->
+<!-- ============================================================ -->
+<body> <!-- Starts the visible page content -->
+<div class="container"> <!-- Main container used to keep the page layout structured -->
 
-    <div class="card">
-        <h2>Portfolio Manager Workflow</h2>
-        <ol>
-            <li>Identify the client or entity and confirm legal ownership of the account.</li>
-            <li>Review compliance status, including KYC, AML, source of wealth, and tax reporting status.</li>
-            <li>Confirm investment objectives, benchmark, and expected return range.</li>
-            <li>Assess risk tolerance, risk capacity, and maximum acceptable drawdown.</li>
-            <li>Review financial position, liquidity needs, liabilities, and cash flow profile.</li>
-            <li>Check all portfolio constraints, including legal, ESG, currency, and concentration limits.</li>
-            <li>Review behavioural factors that may affect implementation or reporting style.</li>
-            <li>Confirm mandate type, rebalancing frequency, and IPS requirements.</li>
-            <li>Decide whether a proposed investment is suitable for the mandate.</li>
-            <li>Determine implementation size, monitoring frequency, and reporting expectations.</li>
-        </ol>
-    </div>
+    {% set active_page = 'portfolio_profiles' %} <!-- Sets the active page so the navbar can highlight this page -->
+    {% include '_navbar.html' %} <!-- Includes the reusable navbar file -->
 
-    <div class="card">
-        <h2>Portfolio Manager Checklist</h2>
-        <ul>
-            <li>Client identity or legal entity confirmed</li>
-            <li>KYC and AML status complete</li>
-            <li>Source of wealth and source of funds understood</li>
-            <li>Investment objective clearly defined</li>
-            <li>Benchmark identified</li>
-            <li>Risk tolerance consistent with proposed assets</li>
-            <li>Liquidity requirements reviewed</li>
-            <li>Legal and regulatory constraints checked</li>
-            <li>ESG restrictions or preferences checked</li>
-            <li>Currency rules checked</li>
-            <li>Maximum position size checked</li>
-            <li>Behavioural risks considered</li>
-            <li>Mandate and IPS requirements respected</li>
-            <li>Monitoring and reporting plan appropriate</li>
-        </ul>
-    </div>
+    <!-- ============================================================ -->
+    <!-- PAGE INTRODUCTION CARD -->
+    <!-- ============================================================ -->
+    <div class="card"> <!-- Starts the intro card -->
+        <h1>Portfolio Profiles and Portfolio Manager Action Centre</h1> <!-- Main page heading -->
+        <p> <!-- Starts first intro paragraph -->
+            This page is designed as a portfolio manager review screen. It does not only describe each <!-- Explains the purpose of the page -->
+            client profile — it shows the type of checks, judgment, and implementation actions a manager <!-- Explains that the page also focuses on actions -->
+            would complete before approving a trade, sizing a position, or rejecting an idea. <!-- Completes the sentence -->
+        </p> <!-- Ends first intro paragraph -->
+        <p> <!-- Starts second intro paragraph -->
+            The purpose is to move from <strong>profile review</strong> to <strong>investment action</strong>: <!-- Highlights the transition from review to action -->
+            assess mandate fit, identify risk and compliance issues, and decide what must happen before any <!-- Explains key review tasks -->
+            position is added to the portfolio. <!-- Completes the sentence -->
+        </p> <!-- Ends second intro paragraph -->
+    </div> <!-- Ends the intro card -->
 
-    {% for key, portfolio in portfolios.items() %}
-    <div class="card">
-        <h2>
-            {% if portfolio.identity.name is defined %}
-                {{ portfolio.identity.name }}
-            {% else %}
-                {{ portfolio.identity.company_name }}
-            {% endif %}
-        </h2>
+    <!-- ============================================================ -->
+    <!-- PORTFOLIO LOOP SECTION -->
+    <!-- ============================================================ -->
+    {% for key, portfolio in portfolios.items() %} <!-- Starts loop through each portfolio dictionary -->
+    <div class="card"> <!-- Starts one card for one portfolio -->
 
-        <p><strong>Portfolio Key:</strong> {{ key }}</p>
-        <p><strong>Client ID:</strong> {{ portfolio.client_id }}</p>
-        <p><strong>Reference Ticker:</strong> {{ portfolio.ticker }}</p>
-        <p><strong>Portfolio Value:</strong> {{ "{:,.0f}".format(portfolio.portfolio_value) }}</p>
+        <h2> <!-- Starts the portfolio name heading -->
+            {% if portfolio.identity.name is defined %} <!-- Checks if this portfolio is for an individual person -->
+                {{ portfolio.identity.name }} <!-- Displays the individual client name -->
+            {% else %} <!-- Runs if it is not an individual -->
+                {{ portfolio.identity.company_name }} <!-- Displays the company name instead -->
+            {% endif %} <!-- Ends the identity check -->
+        </h2> <!-- Ends the portfolio heading -->
 
-        <h3>1. Identity</h3>
-        <ul>
-            {% if portfolio.identity.name is defined %}
-                <li><strong>Name:</strong> {{ portfolio.identity.name }}</li>
-                <li><strong>Date of Birth:</strong> {{ portfolio.identity.date_of_birth }}</li>
-                <li><strong>Nationality:</strong> {{ portfolio.identity.nationality }}</li>
-                <li><strong>Tax Residency:</strong> {{ portfolio.identity.tax_residency }}</li>
-                <li><strong>Address:</strong> {{ portfolio.identity.address }}</li>
-                <li><strong>Identification:</strong> {{ portfolio.identity.identification }}</li>
-            {% else %}
-                <li><strong>Company Name:</strong> {{ portfolio.identity.company_name }}</li>
-                <li><strong>Incorporation Year:</strong> {{ portfolio.identity.incorporation_year }}</li>
-                <li><strong>Residency:</strong> {{ portfolio.identity.residency }}</li>
-                <li><strong>Ownership:</strong> {{ portfolio.identity.ownership }}</li>
-                <li><strong>Signatories:</strong> {{ portfolio.identity.signatories | join(', ') }}</li>
-            {% endif %}
-        </ul>
+        <p><strong>Portfolio Key:</strong> {{ key }}</p> <!-- Shows the internal portfolio key -->
+        <p><strong>Client ID:</strong> {{ portfolio.client_id }}</p> <!-- Shows the client ID -->
+        <p><strong>Reference Ticker / Benchmark Anchor:</strong> {{ portfolio.ticker }}</p> <!-- Shows the benchmark/reference ticker -->
+        <p><strong>Portfolio Value:</strong> {{ "{:,.0f}".format(portfolio.portfolio_value) }}</p> <!-- Shows the portfolio value with comma formatting -->
 
-        <h3>2. Compliance Review</h3>
-        <ul>
-            <li><strong>KYC:</strong> {{ portfolio.compliance.kyc }}</li>
-            <li><strong>AML:</strong> {{ portfolio.compliance.aml }}</li>
-            <li><strong>Source of Wealth:</strong> {{ portfolio.compliance.source_of_wealth }}</li>
-            <li><strong>Source of Funds:</strong> {{ portfolio.compliance.source_of_funds }}</li>
-            <li><strong>FATCA / CRS:</strong> {{ portfolio.compliance.fatca_crs }}</li>
-            <li><strong>PEP:</strong> {{ portfolio.compliance.pep }}</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- PORTFOLIO SUMMARY -->
+        <!-- ============================================================ -->
+        <div class="portfolio-summary"> <!-- Starts summary box for quick overview -->
+            <div> <!-- Starts first summary item -->
+                <p><strong>Objective</strong></p> <!-- Summary label -->
+                <p>{{ portfolio.objectives.goals }}</p> <!-- Displays portfolio objective -->
+            </div> <!-- Ends first summary item -->
+            <div> <!-- Starts second summary item -->
+                <p><strong>Risk Profile</strong></p> <!-- Summary label -->
+                <p>{{ portfolio.risk_profile.risk_tolerance }} / {{ portfolio.risk_profile.risk_capacity }}</p> <!-- Displays risk tolerance and risk capacity -->
+            </div> <!-- Ends second summary item -->
+            <div> <!-- Starts third summary item -->
+                <p><strong>Max Drawdown</strong></p> <!-- Summary label -->
+                <p>{{ portfolio.risk_profile.max_drawdown_percent }}%</p> <!-- Displays maximum drawdown -->
+            </div> <!-- Ends third summary item -->
+            <div> <!-- Starts fourth summary item -->
+                <p><strong>Max Position Weight</strong></p> <!-- Summary label -->
+                <p>{{ portfolio.max_weight }}%</p> <!-- Displays maximum position weight -->
+            </div> <!-- Ends fourth summary item -->
+        </div> <!-- Ends summary box -->
 
-        <h3>3. Investment Objectives</h3>
-        <ul>
-            <li><strong>Goals:</strong> {{ portfolio.objectives.goals }}</li>
-            <li><strong>Time Horizon:</strong> {{ portfolio.objectives.time_horizon_years }} years</li>
-            <li><strong>Expected Return:</strong> {{ portfolio.objectives.expected_return_percent }}%</li>
-            <li><strong>Benchmark:</strong> {{ portfolio.objectives.benchmark }}</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 1. IDENTITY AND ACCOUNT CONTROL -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">1. Identity and Account Control</button> <!-- Accordion button for section 1 -->
+        <div class="panel"> <!-- Starts hidden panel for section 1 -->
+            <ul> <!-- Starts unordered list -->
+                {% if portfolio.identity.name is defined %} <!-- Checks if this is an individual client -->
+                    <li><strong>Name:</strong> {{ portfolio.identity.name }}</li> <!-- Displays client name -->
+                    <li><strong>Date of Birth:</strong> {{ portfolio.identity.date_of_birth }}</li> <!-- Displays date of birth -->
+                    <li><strong>Nationality:</strong> {{ portfolio.identity.nationality }}</li> <!-- Displays nationality -->
+                    <li><strong>Tax Residency:</strong> {{ portfolio.identity.tax_residency }}</li> <!-- Displays tax residency -->
+                    <li><strong>Address:</strong> {{ portfolio.identity.address }}</li> <!-- Displays address -->
+                    <li><strong>Identification:</strong> {{ portfolio.identity.identification }}</li> <!-- Displays identification document -->
+                {% else %} <!-- Runs if it is a company/entity -->
+                    <li><strong>Company Name:</strong> {{ portfolio.identity.company_name }}</li> <!-- Displays company name -->
+                    <li><strong>Incorporation Year:</strong> {{ portfolio.identity.incorporation_year }}</li> <!-- Displays incorporation year -->
+                    <li><strong>Residency:</strong> {{ portfolio.identity.residency }}</li> <!-- Displays company residency -->
+                    <li><strong>Ownership:</strong> {{ portfolio.identity.ownership }}</li> <!-- Displays ownership structure -->
+                    <li><strong>Signatories:</strong> {{ portfolio.identity.signatories | join(', ') }}</li> <!-- Displays authorised signatories -->
+                {% endif %} <!-- Ends identity type check -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>4. Risk Assessment</h3>
-        <ul>
-            <li><strong>Risk Tolerance:</strong> {{ portfolio.risk_profile.risk_tolerance }}</li>
-            <li><strong>Risk Capacity:</strong> {{ portfolio.risk_profile.risk_capacity }}</li>
-            <li><strong>Maximum Drawdown:</strong> {{ portfolio.risk_profile.max_drawdown_percent }}%</li>
-            <li><strong>Portfolio Volatility Input:</strong> {{ portfolio.volatility }}%</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 2. COMPLIANCE REVIEW -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">2. Compliance Review</button> <!-- Accordion button for section 2 -->
+        <div class="panel"> <!-- Starts hidden panel for section 2 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>KYC:</strong> {{ portfolio.compliance.kyc }}</li> <!-- Displays KYC status -->
+                <li><strong>AML:</strong> {{ portfolio.compliance.aml }}</li> <!-- Displays AML status -->
+                <li><strong>Source of Wealth:</strong> {{ portfolio.compliance.source_of_wealth }}</li> <!-- Displays source of wealth -->
+                <li><strong>Source of Funds:</strong> {{ portfolio.compliance.source_of_funds }}</li> <!-- Displays source of funds -->
+                <li><strong>FATCA / CRS:</strong> {{ portfolio.compliance.fatca_crs }}</li> <!-- Displays FATCA/CRS classification -->
+                <li><strong>PEP:</strong> {{ portfolio.compliance.pep }}</li> <!-- Displays PEP status -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>5. Financial Position</h3>
-        <ul>
-            {% for field, value in portfolio.financials.items() %}
-                <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li>
-            {% endfor %}
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 3. INVESTMENT OBJECTIVE AND RETURN TARGET -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">3. Investment Objective and Return Target</button> <!-- Accordion button for section 3 -->
+        <div class="panel"> <!-- Starts hidden panel for section 3 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>Goals:</strong> {{ portfolio.objectives.goals }}</li> <!-- Displays investment goals -->
+                <li><strong>Time Horizon:</strong> {{ portfolio.objectives.time_horizon_years }} years</li> <!-- Displays time horizon -->
+                <li><strong>Expected Return:</strong> {{ portfolio.objectives.expected_return_percent }}%</li> <!-- Displays expected return -->
+                <li><strong>Benchmark:</strong> {{ portfolio.objectives.benchmark }}</li> <!-- Displays benchmark -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>6. Constraints</h3>
-        <ul>
-            {% for field, value in portfolio.constraints.items() %}
-                <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li>
-            {% endfor %}
-            <li><strong>Maximum Position Weight:</strong> {{ portfolio.max_weight }}%</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 4. RISK REVIEW -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">4. Risk Review</button> <!-- Accordion button for section 4 -->
+        <div class="panel"> <!-- Starts hidden panel for section 4 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>Risk Tolerance:</strong> {{ portfolio.risk_profile.risk_tolerance }}</li> <!-- Displays risk tolerance -->
+                <li><strong>Risk Capacity:</strong> {{ portfolio.risk_profile.risk_capacity }}</li> <!-- Displays risk capacity -->
+                <li><strong>Maximum Drawdown:</strong> {{ portfolio.risk_profile.max_drawdown_percent }}%</li> <!-- Displays max drawdown -->
+                <li><strong>Portfolio Volatility Input:</strong> {{ portfolio.volatility }}%</li> <!-- Displays volatility input -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>7. Preferences</h3>
-        <ul>
-            <li><strong>Investment Style:</strong> {{ portfolio.preferences.investment_style }}</li>
-            <li><strong>Products:</strong> {{ portfolio.preferences.products | join(', ') }}</li>
-            <li><strong>Communication:</strong> {{ portfolio.preferences.communication }}</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 5. FINANCIAL POSITION AND LIQUIDITY -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">5. Financial Position and Liquidity</button> <!-- Accordion button for section 5 -->
+        <div class="panel"> <!-- Starts hidden panel for section 5 -->
+            <ul> <!-- Starts unordered list -->
+                {% for field, value in portfolio.financials.items() %} <!-- Loops through all financial fields -->
+                    <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li> <!-- Displays each financial field in readable format -->
+                {% endfor %} <!-- Ends loop -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>8. Behavioural Review</h3>
-        <ul>
-            <li><strong>Past Reactions:</strong> {{ portfolio.behavioural.past_reactions }}</li>
-            <li><strong>Decision Style:</strong> {{ portfolio.behavioural.decision_style }}</li>
-            <li><strong>Biases:</strong> {{ portfolio.behavioural.biases | join(', ') }}</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 6. MANDATE CONSTRAINTS -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">6. Mandate Constraints</button> <!-- Accordion button for section 6 -->
+        <div class="panel"> <!-- Starts hidden panel for section 6 -->
+            <ul> <!-- Starts unordered list -->
+                {% for field, value in portfolio.constraints.items() %} <!-- Loops through all constraint fields -->
+                    <li><strong>{{ field.replace('_', ' ').title() }}:</strong> {{ value }}</li> <!-- Displays each constraint in readable format -->
+                {% endfor %} <!-- Ends loop -->
+                <li><strong>Maximum Position Weight:</strong> {{ portfolio.max_weight }}%</li> <!-- Displays max position weight -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>9. Mandate Review</h3>
-        <ul>
-            <li><strong>Mandate Type:</strong> {{ portfolio.mandate.type }}</li>
-            <li><strong>Fees:</strong> {{ portfolio.mandate.fees_percent }}%</li>
-            <li><strong>Rebalancing Frequency:</strong> {{ portfolio.mandate.rebalancing_frequency }}</li>
-            <li><strong>IPS:</strong> {{ portfolio.mandate.ips }}</li>
-        </ul>
+        <!-- ============================================================ -->
+        <!-- 7. PREFERENCES AND REPORTING STYLE -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">7. Preferences and Reporting Style</button> <!-- Accordion button for section 7 -->
+        <div class="panel"> <!-- Starts hidden panel for section 7 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>Investment Style:</strong> {{ portfolio.preferences.investment_style }}</li> <!-- Displays investment style -->
+                <li><strong>Products:</strong> {{ portfolio.preferences.products | join(', ') }}</li> <!-- Displays preferred products -->
+                <li><strong>Communication:</strong> {{ portfolio.preferences.communication }}</li> <!-- Displays communication/reporting preference -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>10. Portfolio Manager Conclusion</h3>
-        <p>
-            A portfolio manager reviewing this mandate would focus on whether any proposed investment
-            is suitable for the stated objective, consistent with the risk profile, compliant with the
-            listed constraints, and practical given the client’s behavioural profile and reporting needs.
-        </p>
+        <!-- ============================================================ -->
+        <!-- 8. BEHAVIOURAL REVIEW -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">8. Behavioural Review</button> <!-- Accordion button for section 8 -->
+        <div class="panel"> <!-- Starts hidden panel for section 8 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>Past Reactions:</strong> {{ portfolio.behavioural.past_reactions }}</li> <!-- Displays past market behaviour -->
+                <li><strong>Decision Style:</strong> {{ portfolio.behavioural.decision_style }}</li> <!-- Displays decision-making style -->
+                <li><strong>Biases:</strong> {{ portfolio.behavioural.biases | join(', ') }}</li> <!-- Displays behavioural biases -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-        <h3>Manager Action Checklist for This Portfolio</h3>
-        <ul>
-            <li>Confirm suitability of proposed assets against objective and benchmark</li>
-            <li>Check position size against max weight and concentration rules</li>
-            <li>Check mandate restrictions before execution</li>
-            <li>Review liquidity and cash needs before investing</li>
-            <li>Confirm currency fit with mandate requirements</li>
-            <li>Review whether reporting frequency matches portfolio complexity</li>
-            <li>Ensure final recommendation matches IPS and rebalancing policy</li>
-        </ul>
-    </div>
-    {% endfor %}
+        <!-- ============================================================ -->
+        <!-- 9. MANDATE RULES -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">9. Mandate Rules</button> <!-- Accordion button for section 9 -->
+        <div class="panel"> <!-- Starts hidden panel for section 9 -->
+            <ul> <!-- Starts unordered list -->
+                <li><strong>Mandate Type:</strong> {{ portfolio.mandate.type }}</li> <!-- Displays mandate type -->
+                <li><strong>Fees:</strong> {{ portfolio.mandate.fees_percent }}%</li> <!-- Displays management fees -->
+                <li><strong>Rebalancing Frequency:</strong> {{ portfolio.mandate.rebalancing_frequency }}</li> <!-- Displays rebalancing frequency -->
+                <li><strong>IPS:</strong> {{ portfolio.mandate.ips }}</li> <!-- Displays IPS summary -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
 
-</div>
+        <!-- ============================================================ -->
+        <!-- 10. PORTFOLIO MANAGER INTERPRETATION -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">10. Portfolio Manager Interpretation</button> <!-- Accordion button for section 10 -->
+        <div class="panel"> <!-- Starts hidden panel for section 10 -->
+            <p> <!-- Starts interpretation paragraph -->
+                Before approving any trade, the manager should decide whether the proposed security improves the <!-- Explains decision logic -->
+                portfolio in a way that is consistent with the stated objective, benchmark, risk profile, liquidity <!-- Explains what must match -->
+                needs, behavioural considerations, and formal mandate restrictions. <!-- Completes the explanation -->
+            </p> <!-- Ends interpretation paragraph -->
+        </div> <!-- Ends hidden panel -->
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script>
-</body>
-</html>
+        <!-- ============================================================ -->
+        <!-- TRADE APPROVAL QUESTIONS -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">Trade Approval Questions</button> <!-- Accordion button for trade approval questions -->
+        <div class="panel"> <!-- Starts hidden panel -->
+            <ul> <!-- Starts unordered list -->
+                <li>Does this idea fit the client objective and benchmark?</li> <!-- Approval question 1 -->
+                <li>Does the security sit inside the allowed mandate and product universe?</li> <!-- Approval question 2 -->
+                <li>Would the position breach any weight, issuer, or concentration rule?</li> <!-- Approval question 3 -->
+                <li>Does the client’s liquidity need make this allocation impractical?</li> <!-- Approval question 4 -->
+                <li>Is the currency exposure acceptable for this mandate?</li> <!-- Approval question 5 -->
+                <li>Would this position create behavioural stress during drawdowns?</li> <!-- Approval question 6 -->
+                <li>Does the reporting frequency support the complexity of the proposed idea?</li> <!-- Approval question 7 -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
+
+        <!-- ============================================================ -->
+        <!-- EXECUTION CHECKLIST -->
+        <!-- ============================================================ -->
+        <button class="accordion" type="button">Execution Checklist for This Portfolio</button> <!-- Accordion button for execution checklist -->
+        <div class="panel"> <!-- Starts hidden panel -->
+            <ul> <!-- Starts unordered list -->
+                <li>Confirm suitability before trade approval</li> <!-- Checklist item 1 -->
+                <li>Check max position size before order entry</li> <!-- Checklist item 2 -->
+                <li>Review mandate restrictions before execution</li> <!-- Checklist item 3 -->
+                <li>Review liquidity and cash needs before funding the trade</li> <!-- Checklist item 4 -->
+                <li>Confirm benchmark consistency and portfolio role</li> <!-- Checklist item 5 -->
+                <li>Document rationale for approval, limitation, or rejection</li> <!-- Checklist item 6 -->
+                <li>Set monitoring frequency based on mandate and risk level</li> <!-- Checklist item 7 -->
+            </ul> <!-- Ends list -->
+        </div> <!-- Ends hidden panel -->
+
+    </div> <!-- Ends one portfolio card -->
+    {% endfor %} <!-- Ends loop through portfolios -->
+
+</div> <!-- Ends main container -->
+
+<!-- ============================================================ -->
+<!-- JAVASCRIPT FILE -->
+<!-- ============================================================ -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links the external JavaScript file -->
+</body> <!-- Ends body section -->
+</html> <!-- Ends HTML document -->

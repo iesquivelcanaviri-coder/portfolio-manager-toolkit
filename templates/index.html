@@ -1,95 +1,96 @@
-<!DOCTYPE html> 
-<html lang="en">
+<!DOCTYPE html> <!-- HTML5 document -->
+
+<html lang="en"> <!-- Page language set to English -->
 
 <!-- ========================================================= -->
-<!-- HEAD SECTION (Metadata + CSS) -->
+<!-- HEAD -->
 <!-- ========================================================= -->
-<head> <!-- Contains metadata and external resources -->
-    <meta charset="UTF-8"> <!-- Defines character encoding as UTF-8 to support all text characters correctly -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Ensures the page is responsive on mobile devices -->
-    <title>Portfolio Management Home</title> <!-- Title displayed in the browser tab -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links external CSS using Flask static routing -->
-</head> 
+<head>
+    <meta charset="UTF-8"> <!-- helps text display correctly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- makes layout responsive -->
+    <title>Portfolio Management Home</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- main stylesheet -->
+</head>
 
 <!-- ========================================================= -->
-<!-- BODY SECTION (Visible Content + Layout) -->
+<!-- BODY -->
 <!-- ========================================================= -->
-<body> 
+<body>
 
-<div class="container"> <!-- Main wrapper div for layout consistency (centering, spacing, width control) -->
+<div class="container"> <!-- main page wrapper -->
 
-    {% set active_page = 'home' %} <!-- Jinja variable used to track current page for navbar highlighting -->
-    {% include '_navbar.html' %} <!-- Includes reusable navigation bar template across all pages -->
+    {% set active_page = 'home' %} <!-- used so navbar knows this is the home page -->
+    {% include '_navbar.html' %} <!-- imports shared navbar -->
 
     <!-- ========================================================= -->
-    <!-- INTRODUCTION SECTION -->
+    <!-- INTRO SECTION -->
     <!-- ========================================================= -->
-    <div class="card"> <!-- Card container for main introduction -->
-        <h1>Portfolio Management Decision Support Tool</h1> <!-- Main heading describing the application -->
-        <p> <!-- Paragraph explaining purpose of the tool -->
+    <div class="card">
+        <h1>Portfolio Management Decision Support Tool</h1>
+        <p>
             This project simulates how a portfolio manager can evaluate securities using
-            return analysis, risk metrics, valuation indicators, and internal portfolio
+            return analysis, volatility, Sharpe-like metrics, ranking logic, and internal portfolio
             sizing criteria. The tool combines Yahoo Finance market data with portfolio
             management rules to support investment decisions.
-        </p> 
-    </div> 
+        </p>
+    </div>
 
     <!-- ========================================================= -->
-    <!-- FUNCTIONALITY OVERVIEW SECTION -->
+    <!-- PROJECT FEATURES -->
     <!-- ========================================================= -->
-    <div class="card"> <!-- Card for explaining project functionality -->
-        <h2>What This Project Does</h2> <!-- Subheading introducing system capabilities -->
-        <p> <!-- Description of how the system works -->
+    <div class="card">
+        <h2>What This Project Does</h2>
+        <p>
             The site is designed to help the user assess securities and portfolio ideas
             using a structured portfolio management approach. It combines qualitative
             judgment with quantitative analysis to support decisions on suitability,
             conviction level, and recommended portfolio weight.
         </p>
 
-        <ul> <!-- Unordered list showing key features -->
-            <li>Understand the position sizing framework used in the project</li> <!-- Explains portfolio allocation logic -->
-            <li>Review high-level investment decision criteria</li> <!-- Explains conceptual decision framework -->
-            <li>Analyse a selected stock or ETF using 1-year and 3-month data</li> <!-- Explains time-based performance analysis -->
-            <li>Compare multiple securities in the market dashboard</li> <!-- Explains screening functionality -->
-            <li>Filter and sort securities by beta, P/E ratio, score, Sharpe-like ratio, and decision</li> <!-- Explains filtering/sorting logic -->
-            <li>See risk, return, Sharpe-like, and beta</li> <!-- Highlights financial metrics -->
-            <li>Apply position sizing rules (6%, 3.5%, 3%, 1–2%, and cash)</li> <!-- Explains allocation strategy -->
-            <li>Build and review portfolio holdings</li> <!-- Explains portfolio construction -->
-            <li>Track portfolio allocation, remaining cash, and average beta</li> <!-- Explains monitoring metrics -->
-        </ul> 
+        <ul>
+            <li>Understand the position sizing framework used in the project</li> <!-- shows how allocations are classified -->
+            <li>Review high-level investment decision criteria</li> <!-- explains the decision process -->
+            <li>Analyse a selected stock or ETF using 1-year and 3-month data</li> <!-- security analysis section -->
+            <li>Compare multiple securities in the market dashboard</li> <!-- dashboard comparison feature -->
+            <li>Filter and sort securities by ticker, decision, score, volatility, Sharpe-like ratio, and ranking score</li> <!-- dashboard filtering tools -->
+            <li>See latest price, expected return, volatility, Sharpe-like ratio, score, and ranking score</li> <!-- main metrics shown -->
+            <li>Apply position sizing rules (6%, 3.5%, 3%, 1–2%, and cash)</li> <!-- portfolio sizing logic -->
+            <li>Build and review portfolio holdings</li> <!-- add/update holdings -->
+            <li>Track portfolio allocation, remaining cash, and average beta</li> <!-- portfolio summary section -->
+        </ul>
 
         <!-- ========================================================= -->
-        <!-- TARGET USERS SUBSECTION -->
+        <!-- TARGET USERS -->
         <!-- ========================================================= -->
-        <h2>Who This Is For</h2> <!-- Subheading for target audience -->
-        <ul> <!-- List of intended users -->
-            <li>Students learning portfolio management</li> <!-- Educational use -->
-            <li>Junior analysts and portfolio managers</li> <!-- Professional training use -->
-            <li>Advisors needing a simple decision-support tool</li> <!-- Practical application use -->
-        </ul> 
-    </div> 
+        <h2>Who This Is For</h2>
+        <ul>
+            <li>Students learning portfolio management</li>
+            <li>Junior analysts and portfolio managers</li>
+            <li>Advisors needing a simple decision-support tool</li>
+        </ul>
+    </div>
 
     <!-- ========================================================= -->
-    <!-- USER WORKFLOW SECTION -->
+    <!-- HOW TO USE THE SITE -->
     <!-- ========================================================= -->
-    <div class="card"> <!-- Card for step-by-step instructions -->
-        <h2>How to Use the Site</h2> <!-- Section title -->
+    <div class="card">
+        <h2>How to Use the Site</h2>
 
-        <ol> <!-- Ordered list showing workflow steps -->
-            <li>Start on the <strong>Market Dashboard</strong> page to screen and compare securities.</li> <!-- Step 1: initial filtering -->
-            <li>Go to the <strong>Criteria</strong> page to analyse a specific stock or ETF within the context of a chosen portfolio mandate.</li> <!-- Step 2: detailed analysis -->
-            <li>Review score, beta, decision, expected return, volatility, Sharpe-like ratio, and forecast outputs.</li> <!-- Step 3: interpret analytics -->
-            <li>Use the position sizing framework to decide whether the security belongs as a high-conviction, core, satellite, exploratory, or cash decision.</li> <!-- Step 4: classification -->
-            <li>Add or update the position and monitor portfolio allocation summary.</li> <!-- Step 5: portfolio construction -->
-        </ol> 
-    </div> 
+        <ol>
+            <li>Start on the <strong>Market Dashboard</strong> page to screen and compare securities.</li>
+            <li>Go to the <strong>Criteria</strong> page to analyse a specific stock or ETF within the context of a chosen portfolio mandate.</li>
+            <li>Review score, decision, expected return, volatility, Sharpe-like ratio, latest price, and forecast outputs.</li>
+            <li>Use the position sizing framework to decide whether the security belongs as a high-conviction, core, satellite, exploratory, or cash decision.</li>
+            <li>Add or update the position and monitor portfolio allocation summary.</li>
+        </ol>
+    </div>
 
-</div> 
+</div>
 
 <!-- ========================================================= -->
-<!-- JAVASCRIPT SECTION -->
+<!-- JAVASCRIPT -->
 <!-- ========================================================= -->
-<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links JS file for interactivity (filters, events, updates) -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- links site JavaScript -->
 
-</body> 
-</html> 
+</body>
+</html>
