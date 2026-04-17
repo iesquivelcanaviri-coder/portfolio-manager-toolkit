@@ -1,765 +1,1096 @@
-document.addEventListener("DOMContentLoaded", function () { // Waits until the full HTML document has been loaded and parsed before running the JavaScript, which is important because many elements below are selected from the page and would return null if the script ran too early
+# ============================================================  
+# IMPORTS  # Section title showing all imported libraries and Flask tools
+# ============================================================  
 
-// =========================================================
-// SHARED SECTION → PAGE CHECK + COMMON ELEMENTS
-// This block collects the main HTML elements that are reused
-// across different pages, so I do not have to keep selecting
-// them again and again later in the file.
-// =========================================================
+from flask import Flask, render_template, request, jsonify  # Imports Flask app object plus render_template for HTML pages, request for form/JSON data, and jsonify for API responses
+import yfinance as yf  # Imports yfinance and gives it the short name yf so Yahoo Finance data can be downloaded more easily
+import numpy as np  # Imports NumPy and gives it the short name np so mathematical functions like square root can be used
+import re  # Imports Python's regular expressions module so text like "3.5%" can be cleaned and parsed
+import time  # Imports time module so dashboard results can be cached for a number of seconds
 
-const body = document.body; // keeping a reference to the whole page in case I need page-level checks later
-const form = document.getElementById("analyze-form"); // this is the analysis form on criteria.html
-const addButton = document.getElementById("add-to-portfolio-btn"); // button used to add or update a stock in a portfolio
-const portfolioSelect = document.getElementById("portfolio_key"); // dropdown that lets the user choose which portfolio they are working with
-const tradeMessage = document.getElementById("trade-message"); // area where success, warning, or error messages are shown
-const marketTable = document.getElementById("market-table"); // main table used on the market dashboard page
-const tickerSelect = document.getElementById("ticker"); // ticker dropdown on the criteria page
-const portfolioGroupsContainer = document.getElementById("portfolio-groups"); // area where grouped portfolio holdings are displayed
+app = Flask(__name__)  # Creates the Flask application instance; __name__ tells Flask where this file is located
 
-let latestAnalysis = null; // I use this to store the latest stock analysis result so it can be reused when adding to the portfolio
+# ============================================================  
+# GLOBAL STORAGE  # Section title for variables stored in memory while the app is running
+# ============================================================  
+
+selected_stocks = {  # Dictionary used to store the stocks added by the user for each portfolio scenario
+    "scenario1": [],  # Empty list for holdings added to portfolio scenario 1
+    "scenario2": [],  
+    "scenario3": [],  
+    "scenario4": [],  
+    "scenario5": [],  
+}  
+
+dashboard_cache = {  # Dictionary used to cache market dashboard output so it does not rebuild on every page load
+    "rows": None,  # Stores the cached dashboard rows; starts as None because nothing has been built yet
+    "timestamp": 0  # Stores the time when the cache was last updated; starts at 0
+}  
+
+DASHBOARD_CACHE_SECONDS = 300  # Cache duration in seconds; 300 seconds equals 5 minutes
+
+# ============================================================  
+# PORTFOLIO CONFIGURATION  # Section title for all predefined portfolio scenarios
+# ============================================================  
+
+PORTFOLIO_1 = {  # Dictionary defining the first client portfolio
+    "client_id": "portfolio_1_conservative_retiree",  # Unique internal ID for this portfolio
+    "identity": {  # Nested dictionary containing client identity details
+        "name": "Marie-Claire Dubois",  # Client full name
+        "date_of_birth": "1958-03-12",  # Client date of birth
+        "nationality": "French",  # Client nationality
+        "tax_residency": "France",  # Country where the client is tax resident
+        "address": "Lyon, France",  # Client location/address summary
+        "identification": "French passport",  # Main ID document used for KYC
+    },  
+    "compliance": {  # Nested dictionary for compliance and onboarding details
+        "kyc": "Completed",  # Know Your Customer check status
+        "aml": "No red flags",  # Anti-money laundering screening result
+        "source_of_wealth": "Pension and inheritance",  # Where the client’s wealth came from
+        "source_of_funds": "Retirement savings",  # Where the invested money specifically came from
+        "fatca_crs": "CRS only",  # Tax reporting classification
+        "pep": False,  # Politically exposed person flag; False means no
+    },  
+    "objectives": {  # Nested dictionary for investment goals
+        "goals": "Capital preservation and stable income",  # Main investment objective
+        "time_horizon_years": "5-7",  # Time horizon in years
+        "expected_return_percent": "2-3",  # Expected return range in percentage terms
+        "benchmark": "Eurozone government bond index",  # Benchmark used for comparison
+    },  
+    "risk_profile": {  # Nested dictionary describing client risk profile
+        "risk_tolerance": "Conservative",  # Client willingness to accept risk
+        "risk_capacity": "Low",  # Client ability to absorb losses
+        "max_drawdown_percent": -8,  # Maximum acceptable portfolio decline
+    },  
+    "financials": {  # Nested dictionary for financial situation
+        "net_worth": 850000,  # Total net worth
+        "investments": 500000,  # Amount already invested or available for investment
+        "real_estate": "Primary residence",  # Property situation
+        "liabilities": 0,  # Total liabilities
+        "income_monthly": 2200,  # Monthly income
+        "expenses_monthly": 1800,  # Monthly expenses
+        "liquidity_needs_monthly": 3000,  # Monthly cash need requirement
+    },  
+    "constraints": {  # Nested dictionary for mandate restrictions
+        "legal": "UCITS-compliant",  # Legal restriction or framework
+        "esg": "No tobacco",  # ESG restriction
+        "max_equity_allocation_percent": 20,  # Maximum equity exposure allowed
+        "currency": "EUR only",  # Allowed currency exposure
+    },  
+    "preferences": {  # Nested dictionary for client preferences
+        "investment_style": "Income-focused",  # Preferred investment style
+        "products": ["Bond funds", "Money-market funds"],  # Preferred product types
+        "communication": "Monthly, simplified reports",  # Preferred reporting style
+    },  
+    "behavioural": {  # Nested dictionary for behavioural observations
+        "past_reactions": "Panicked during 2020 market crash",  # Historical behaviour in stress periods
+        "decision_style": "Hands-off",  # How involved the client likes to be
+        "biases": ["Loss aversion"],  # Behavioural biases observed
+    },  
+    "mandate": {  # Nested dictionary for formal portfolio management rules
+        "type": "Discretionary",  # Mandate type means manager can act on behalf of client
+        "fees_percent": 0.8,  # Management fee percentage
+        "rebalancing_frequency": "Quarterly",  # How often the portfolio should be rebalanced
+        "ips": "Preserve capital, generate income, minimize volatility",  # Investment policy statement summary
+    },  
+    "portfolio_value": 500000,  # Total portfolio value used in sizing logic
+    "max_weight": 20,  # Absolute maximum weight per position
+    "volatility": 8.0,  # Example portfolio or benchmark volatility input
+    "returns": [0.2, 0.1, 0.15, 0.05, 0.1],  # Example returns list used as embedded scenario data
+    "ticker": "IEF",  # Default benchmark/reference ticker for this portfolio
+}  
+
+PORTFOLIO_2 = {
+    "client_id": "portfolio_2_busy_executive",
+    "identity": {
+        "name": "James O'Connor",
+        "date_of_birth": "1981-07-04",
+        "nationality": "Irish",
+        "tax_residency": "Ireland",
+        "address": "Dublin, Ireland",
+        "identification": "Irish passport",
+    },
+    "compliance": {
+        "kyc": "Completed",
+        "aml": "No issues",
+        "source_of_wealth": "Salary and bonuses",
+        "source_of_funds": "Corporate employment",
+        "fatca_crs": "CRS only",
+        "pep": False,
+    },
+    "objectives": {
+        "goals": "Long-term growth",
+        "time_horizon_years": "15+",
+        "expected_return_percent": "6-8",
+        "benchmark": "MSCI World",
+    },
+    "risk_profile": {
+        "risk_tolerance": "Growth",
+        "risk_capacity": "High",
+        "max_drawdown_percent": -20,
+    },
+    "financials": {
+        "net_worth": 1400000,
+        "investments": 600000,
+        "real_estate": "Home and rental property",
+        "liabilities": 200000,
+        "income_yearly": 180000,
+        "expenses_yearly": 70000,
+        "liquidity_needs": "Low",
+    },
+    "constraints": {
+        "legal": "UCITS",
+        "esg": "Required",
+        "max_stock_weight_percent": 10,
+        "currency": "EUR base, FX allowed",
+    },
+    "preferences": {
+        "investment_style": "Passive",
+        "products": ["ETFs only"],
+        "communication": "Quarterly",
+    },
+    "behavioural": {
+        "past_reactions": "Stayed invested during downturns",
+        "decision_style": "Hands-off",
+        "biases": ["Home bias toward Irish equities"],
+    },
+    "mandate": {
+        "type": "Discretionary",
+        "fees_percent": 0.6,
+        "rebalancing_frequency": "Semi-annual",
+        "ips": "Global equity exposure with ESG screening",
+    },
+    "portfolio_value": 600000,
+    "max_weight": 10,
+    "volatility": 22.0,
+    "returns": [0.6, -0.3, 0.8, 0.4, 0.5],
+    "ticker": "ACWI",
+}
+
+PORTFOLIO_3 = {
+    "client_id": "portfolio_3_corporate_treasury",
+    "identity": {
+        "company_name": "Helvetic Precision Tools SA",
+        "incorporation_year": 2012,
+        "residency": "Geneva, Switzerland",
+        "ownership": "Family-owned",
+        "signatories": ["CFO", "CEO"],
+    },
+    "compliance": {
+        "kyc": "Completed",
+        "aml": "Clean",
+        "source_of_wealth": "Operating profits",
+        "source_of_funds": "Corporate cash reserves",
+        "fatca_crs": "Corporate CRS",
+        "pep": False,
+    },
+    "objectives": {
+        "goals": "Preserve capital and earn yield",
+        "time_horizon_years": "1-3",
+        "expected_return_percent": "1-2",
+        "benchmark": "CHF money-market index",
+    },
+    "risk_profile": {
+        "risk_tolerance": "Very low",
+        "risk_capacity": "Medium",
+        "max_drawdown_percent": -3,
+    },
+    "financials": {
+        "assets_cash": 5000000,
+        "liabilities": 0,
+        "income": "Business revenue",
+        "expenses": "Operational",
+        "liquidity_needs": 1000000,
+    },
+    "constraints": {
+        "legal": "Corporate policy prohibits equities",
+        "esg": "Neutral",
+        "max_issuer_weight_percent": 5,
+        "currency": "CHF only",
+    },
+    "preferences": {
+        "investment_style": "Capital protection",
+        "products": ["Money-market funds", "Short-duration bonds"],
+        "communication": "Monthly, detailed",
+    },
+    "behavioural": {
+        "past_reactions": "CFO is extremely risk-averse",
+        "decision_style": "Very involved",
+        "biases": ["Cash bias"],
+    },
+    "mandate": {
+        "type": "Advisory",
+        "fees_percent": 0.4,
+        "rebalancing_frequency": "Monthly liquidity checks",
+        "ips": "No equities, short-duration fixed income only",
+    },
+    "portfolio_value": 5000000,
+    "max_weight": 5,
+    "volatility": 3.0,
+    "returns": [0.05, 0.03, 0.04, 0.02, 0.03],
+    "ticker": "SHY",
+}
+
+PORTFOLIO_4 = {
+    "client_id": "portfolio_4_international_entrepreneur",
+    "identity": {
+        "name": "Alejandro Torres",
+        "date_of_birth": "1986-11-22",
+        "nationality": "Spanish",
+        "residency": "Dubai",
+        "identification": "Spanish passport",
+    },
+    "compliance": {
+        "kyc": "Completed",
+        "aml": "No issues",
+        "source_of_wealth": "Tech company founder",
+        "source_of_funds": "Business sale and dividends",
+        "fatca_crs": "CRS",
+        "pep": False,
+    },
+    "objectives": {
+        "goals": "Growth and diversification",
+        "time_horizon_years": "10+",
+        "expected_return_percent": "8-12",
+        "benchmark": "MSCI ACWI",
+    },
+    "risk_profile": {
+        "risk_tolerance": "Aggressive",
+        "risk_capacity": "Very high",
+        "max_drawdown_percent": -30,
+    },
+    "financials": {
+        "net_worth": 12000000,
+        "investments": 4000000,
+        "real_estate": "Three properties",
+        "liabilities": 0,
+        "income": "Irregular business income",
+        "expenses_yearly": 200000,
+        "liquidity_needs": "Medium",
+    },
+    "constraints": {
+        "legal": "None",
+        "esg": "Prefers clean energy",
+        "concentration": "Avoids competitor industries",
+        "currency": ["USD", "EUR", "CHF"],
+    },
+    "preferences": {
+        "investment_style": "Thematic and opportunistic",
+        "products": ["Direct equities", "Thematic ETFs"],
+        "communication": "Weekly",
+    },
+    "behavioural": {
+        "past_reactions": "Buys aggressively during market dips",
+        "decision_style": "Collaborative",
+        "biases": ["Overconfidence"],
+    },
+    "mandate": {
+        "type": "Advisory",
+        "fees_percent": 1.0,
+        "rebalancing_frequency": "Opportunistic",
+        "ips": "High-growth, multi-currency, thematic focus",
+    },
+    "portfolio_value": 4000000,
+    "max_weight": 15,
+    "volatility": 35.0,
+    "returns": [1.2, -0.8, 2.0, -0.5, 1.5],
+    "ticker": "QQQ",
+}
+
+PORTFOLIO_5 = {
+    "client_id": "portfolio_5_family_office",
+    "identity": {
+        "name": "The Beaumont Family Office",
+        "incorporation_year": 1998,
+        "residency": "London, UK",
+        "ownership": "Multi-generational family",
+        "signatories": ["CIO", "Family council"],
+    },
+    "compliance": {
+        "kyc": "Completed",
+        "aml": "Clean",
+        "source_of_wealth": "Real estate and private equity",
+        "source_of_funds": "Family assets",
+        "fatca_crs": "CRS",
+        "pep": "One family member (low-risk)",
+    },
+    "objectives": {
+        "goals": "Preserve wealth and achieve moderate growth",
+        "time_horizon_years": "30+",
+        "expected_return_percent": "5-7",
+        "benchmark": "40/60 global portfolio",
+    },
+    "risk_profile": {
+        "risk_tolerance": "Balanced",
+        "risk_capacity": "Very high",
+        "max_drawdown_percent": -15,
+    },
+    "financials": {
+        "net_worth": 50000000,
+        "investments": 30000000,
+        "real_estate": 20000000,
+        "liabilities": 0,
+        "income": "Rental income and dividends",
+        "expenses_yearly": 1000000,
+        "liquidity_needs_yearly": 500000,
+    },
+    "constraints": {
+        "legal": "Must include alternatives",
+        "esg": "Required",
+        "max_asset_weight_percent": 10,
+        "currency": "GBP base, global exposure allowed",
+    },
+    "preferences": {
+        "investment_style": "Diversified and institutional",
+        "products": ["Hedge funds", "Private equity", "Real estate", "ETFs"],
+        "communication": "Monthly plus quarterly deep-dive reports",
+    },
+    "behavioural": {
+        "past_reactions": "Calm during crises",
+        "decision_style": "Committee-based",
+        "biases": ["None significant"],
+    },
+    "mandate": {
+        "type": "Discretionary",
+        "fees_percent": 1.2,
+        "rebalancing_frequency": "Quarterly",
+        "ips": "Multi-asset, ESG-aligned, long-term preservation",
+    },
+    "portfolio_value": 30000000,
+    "max_weight": 10,
+    "volatility": 15.0,
+    "returns": [0.4, -0.1, 0.5, 0.3, 0.2],
+    "ticker": "AOR",
+}
+
+PORTFOLIOS = {
+    "scenario1": PORTFOLIO_1,
+    "scenario2": PORTFOLIO_2,
+    "scenario3": PORTFOLIO_3,
+    "scenario4": PORTFOLIO_4,
+    "scenario5": PORTFOLIO_5,
+}
 
 
-// =========================================================
-// SHARED SECTION → TICKER UNIVERSE
-// This is the full list of tickers grouped by type.
-// I use it to build the dropdown dynamically instead of
-// hardcoding only a few names in the HTML.
-// =========================================================
+# ============================================================  
+# HELPERS  # This section contains reusable helper functions used across routes and analysis logic
+# ============================================================  
+def get_portfolio_display_name(portfolio):  # Defines a helper function that returns the best display name for a portfolio dictionary
+    identity = portfolio.get("identity", {})  # Safely gets the nested "identity" dictionary; returns empty dict if missing to avoid errors
+    return (  # Starts a grouped return statement that will return the first non-empty value it finds
+        identity.get("name")  # First tries to return the client's personal name if this is an individual portfolio
+        or identity.get("company_name")  # If no personal name exists, tries the company name for corporate/entity portfolios
+        or portfolio.get("client_id", "Unknown Portfolio")  # If neither exists, falls back to client_id, or "Unknown Portfolio" if missing
+    )  # Ends the grouped return expression
 
-const tickerUniverse = { // grouped ticker list so the dropdown is cleaner and easier to scan
-    fixed_income: [ // bond and bond-like ETFs
+def get_portfolio_choices():  # Defines a helper function to build portfolio options for the HTML dropdown menu
+    return [  # Returns a list comprehension containing one dictionary per portfolio
+        {"key": key, "name": get_portfolio_display_name(portfolio)}  # Creates a small dictionary with the scenario key and cleaned display name
+        for key, portfolio in PORTFOLIOS.items()  # Loops through the global PORTFOLIOS dictionary to process every portfolio scenario
+    ]  # Ends the list comprehension and returns the finished list
+
+def safe_div(a, b):  # Defines a helper function for safe division so the app does not crash on divide-by-zero or None
+    return a / b if b not in (0, 0.0, None) else 0.0  # Divides a by b only if b is valid; otherwise returns 0.0 as a safe fallback
+
+def parse_weight_to_decimal(weight_text):  # Defines a helper function to convert text like "6%" or "1-2%" into decimal portfolio weights
+    if not weight_text:  # Checks whether the input is empty, None, or otherwise falsey
+        return 0.0  # Returns 0.0 because there is no usable weight to convert
+
+    numbers = re.findall(r"\d+\.?\d*", str(weight_text))  # Uses regex to extract all numbers from the text after converting input to string
+    if not numbers:  # Checks whether the regex found any numeric values
+        return 0.0  # Returns 0.0 because the text did not contain a usable number
+
+    values = [float(num) for num in numbers]  # Converts all extracted numeric strings into float values
+
+    if len(values) == 1:  # Checks whether only one number was found, for example "6%"
+        return values[0] / 100.0  # Converts the percentage into decimal form, e.g. 6 becomes 0.06
+
+    return (sum(values) / len(values)) / 100.0  # If a range like "1-2%" exists, averages the numbers and converts result to decimal
+
+def get_effective_max_weight(portfolio):  # Defines a helper function that finds the strictest position-size limit for a portfolio
+    limits = []  # Creates an empty list to store all possible maximum-weight constraints found
+    constraints = portfolio.get("constraints", {})  # Safely gets the portfolio constraints dictionary or an empty dict if missing
+
+    if portfolio.get("max_weight") is not None:  # Checks whether the base top-level max_weight exists
+        limits.append(float(portfolio["max_weight"]))  # Adds the top-level maximum weight to the list after converting it to float
+
+    if constraints.get("max_stock_weight_percent") is not None:  # Checks whether a stock-specific max weight exists in constraints
+        limits.append(float(constraints["max_stock_weight_percent"]))  # Adds that stock weight limit to the list
+
+    if constraints.get("max_asset_weight_percent") is not None:  # Checks whether a general asset-level max weight exists
+        limits.append(float(constraints["max_asset_weight_percent"]))  # Adds that asset-level limit to the list
+
+    if constraints.get("max_issuer_weight_percent") is not None:  # Checks whether an issuer concentration limit exists
+        limits.append(float(constraints["max_issuer_weight_percent"]))  # Adds that issuer limit to the list
+
+    if limits:  # Checks whether at least one limit was collected
+        return min(limits)  # Returns the smallest limit because the strictest limit is the effective one
+
+    return None  # Returns None if no limits were found at all
+
+def calculate_portfolio_summary(stocks):  # Defines a helper function that calculates summary statistics for one portfolio's selected holdings
+    if not stocks:  # Checks whether the portfolio currently has no selected holdings
+        return {  # Returns a default summary dictionary for an empty portfolio
+            "position_count": 0,  # States that there are zero positions
+            "total_allocated_percent": 0.0,  # States that 0% of capital is allocated
+            "remaining_cash_percent": 100.0,  # States that 100% remains as cash
+            "average_beta": None  # Average beta is unknown because there are no holdings
+        }  # Ends the default summary dictionary
+
+    total_allocated = sum(stock.get("weight_decimal", 0.0) for stock in stocks)  # Sums the decimal weights of all holdings to get total allocation
+    betas = [stock["beta"] for stock in stocks if stock.get("beta") is not None]  # Builds a list of all non-null beta values from holdings
+    average_beta = round(sum(betas) / len(betas), 2) if betas else None  # Calculates average beta rounded to 2 decimals, or None if no betas exist
+
+    return {  # Returns the portfolio summary dictionary
+        "position_count": len(stocks),  # Number of holdings currently in the portfolio
+        "total_allocated_percent": round(total_allocated * 100, 2),  # Converts total allocated weight to percentage form
+        "remaining_cash_percent": round(max(0.0, 1.0 - total_allocated) * 100, 2),  # Calculates remaining unallocated cash as a percentage
+        "average_beta": average_beta  # Includes the previously calculated average beta
+    }  # Ends the returned summary dictionary
+
+def build_grouped_portfolio_payload():  # Defines a helper function to build all portfolio holdings grouped by scenario for the frontend
+    grouped = {}  # Creates an empty dictionary that will hold each portfolio's grouped output
+
+    for key, portfolio in PORTFOLIOS.items():  # Loops through each scenario key and its portfolio definition
+        stocks = selected_stocks.get(key, [])  # Gets the selected holdings for that scenario, or an empty list if none exist
+        sorted_stocks = sorted(  # Starts sorting the holdings before sending them to the frontend
+            stocks,  # The list of holdings to sort
+            key=lambda stock: stock.get("weight_decimal", 0.0),  # Sort key uses weight_decimal so biggest positions appear first
+            reverse=True  # Sorts from highest weight to lowest weight
+        )  # Ends the sorted() call and stores sorted holdings
+
+        grouped[key] = {  # Adds one entry to the grouped dictionary for this scenario
+            "portfolio_name": get_portfolio_display_name(portfolio),  # Stores a clean portfolio name for display
+            "stocks": sorted_stocks,  # Stores the sorted holdings list
+            "summary": calculate_portfolio_summary(sorted_stocks)  # Stores the calculated summary for those holdings
+        }  # Ends the nested dictionary for one portfolio
+
+    return grouped  # Returns the full grouped portfolio payload to be used in JSON responses or template rendering
+
+def default_metrics(period_label: str):  # Defines a helper function that returns a default metrics dictionary for failed or missing price data
+    return {  # Returns a standardised dictionary so the rest of the app always receives the same structure
+        "annualised_expected_return": 0.0,  # Default expected return is 0.0 when no data exists
+        "annualised_volatility": 0.0,  # Default volatility is 0.0 when no data exists
+        "sharpe_like": 0.0,  # Default Sharpe-like ratio is 0.0 when no data exists
+        "latest_price": 0.0,  # Default latest price is 0.0 when no data exists
+        "price_start_date": "N/A",  # No valid price start date is available
+        "price_end_date": "N/A",  # No valid price end date is available
+        "price_observations": 0,  # No price observations were found
+        "return_start_date": "N/A",  # No valid return series start date is available
+        "return_end_date": "N/A",  # No valid return series end date is available
+        "return_observations": 0,  # No return observations were found
+        "returns_series": None,  # No return series is available
+        "period_label": period_label,  # Stores the period label passed into the function, such as "1y" or "3mo"
+    }  # Ends the default metrics dictionary
+    
+def compute_metrics_from_batch(batch_data, ticker: str):  # Defines a helper function to compute metrics for one ticker using already-downloaded batch data
+    try:  # Starts a try block so dashboard processing does not crash if one ticker has issues
+        if batch_data is None or batch_data.empty:  # Checks whether the batch download returned no usable data
+            return default_metrics("1y")  # Returns default 1-year metrics if batch data is missing
+
+        if hasattr(batch_data.columns, "nlevels") and batch_data.columns.nlevels > 1:  # Checks whether yfinance returned multi-level columns for multi-ticker data
+            if ticker not in batch_data.columns.get_level_values(0):  # Checks whether the requested ticker exists in the top-level columns
+                return default_metrics("1y")  # Returns defaults if the ticker is not present in batch data
+            ticker_data = batch_data[ticker].copy()  # Extracts only this ticker's DataFrame and copies it for safe processing
+        else:  # Runs if the data is not multi-indexed
+            ticker_data = batch_data.copy()  # Uses the whole dataset directly because there is no top-level ticker split
+
+        if "Close" not in ticker_data.columns:  # Checks whether a Close price column exists
+            return default_metrics("1y")  # Returns defaults if Close prices are unavailable
+
+        close_prices = ticker_data["Close"].dropna()  # Selects the Close column and removes missing values
+        if close_prices.empty or len(close_prices) < 2:  # Checks whether there are enough price points to calculate returns
+            return default_metrics("1y")  # Returns defaults if there are fewer than 2 prices
+
+        returns = close_prices.pct_change().dropna()  # Calculates daily percentage returns from closing prices and removes NaN values
+
+        if returns.empty:  # Checks whether return calculation produced no valid values
+            return {  # Returns a partial metrics dictionary with price info but zero return-based statistics
+                "annualised_expected_return": 0.0,  # Sets expected return to zero because returns could not be computed
+                "annualised_volatility": 0.0,  # Sets volatility to zero for same reason
+                "sharpe_like": 0.0,  # Sets Sharpe-like value to zero because return/risk data is incomplete
+                "latest_price": float(close_prices.iloc[-1]),  # Still returns latest valid close price
+                "price_start_date": close_prices.index[0].strftime("%Y-%m-%d"),  # Returns first available price date
+                "price_end_date": close_prices.index[-1].strftime("%Y-%m-%d"),  # Returns last available price date
+                "price_observations": int(len(close_prices)),  # Returns count of available price observations
+                "return_start_date": "N/A",  # No valid return start date exists
+                "return_end_date": "N/A",  # No valid return end date exists
+                "return_observations": 0,  # Return observation count is zero
+                "returns_series": None,  # No valid returns series to pass onward
+                "period_label": "1y",  # Labels this metric block as 1-year data
+            }  # Ends partial metrics dictionary
+
+        annualised_volatility = float(returns.std() * np.sqrt(252))  # Converts daily return standard deviation into annualised volatility using 252 trading days
+        annualised_expected_return = float(returns.mean() * 252)  # Converts average daily return into annualised expected return
+        sharpe_like = safe_div(annualised_expected_return, annualised_volatility)  # Calculates simple Sharpe-like ratio using helper to avoid division errors
+        latest_price = float(close_prices.iloc[-1])  # Stores the latest available closing price
+
+        return {  # Returns the fully computed metrics dictionary
+            "annualised_expected_return": annualised_expected_return,  # Annualised expected return value
+            "annualised_volatility": annualised_volatility,  # Annualised volatility value
+            "sharpe_like": sharpe_like,  # Sharpe-like ratio value
+            "latest_price": latest_price,  # Latest market price
+            "price_start_date": close_prices.index[0].strftime("%Y-%m-%d"),  # First valid date in price series
+            "price_end_date": close_prices.index[-1].strftime("%Y-%m-%d"),  # Last valid date in price series
+            "price_observations": int(len(close_prices)),  # Number of valid closing price observations
+            "return_start_date": returns.index[0].strftime("%Y-%m-%d"),  # First valid date in returns series
+            "return_end_date": returns.index[-1].strftime("%Y-%m-%d"),  # Last valid date in returns series
+            "return_observations": int(len(returns)),  # Number of valid return observations
+            "returns_series": returns,  # Returns the full pandas returns series for later beta calculations
+            "period_label": "1y",  # Labels this metric block as 1-year
+        }  # Ends final metrics dictionary
+
+    except Exception:  # Catches any unexpected error during metric calculation
+        return default_metrics("1y")  # Returns default 1-year metrics instead of crashing the dashboard
+
+def compute_metrics(ticker: str, period: str):  # Defines a helper function to download price data for a single ticker and compute metrics
+    try:  # Starts try block to safely handle download errors
+        data = yf.download(ticker, period=period, auto_adjust=True, progress=False)  # Downloads historical market data from Yahoo Finance for the chosen ticker and period
+    except Exception:  # Catches download failures
+        return default_metrics(period)  # Returns default metrics for the requested period
+
+    if data is None or data.empty:  # Checks whether the download returned nothing useful
+        return default_metrics(period)  # Returns defaults if no data was downloaded
+
+    if hasattr(data.columns, "nlevels") and data.columns.nlevels > 1:  # Checks whether returned columns are multi-level
+        data.columns = data.columns.get_level_values(0)  # Flattens multi-level columns to single-level names like Close, Open, High
+
+    if "Close" not in data.columns:  # Verifies that closing prices are available
+        return default_metrics(period)  # Returns defaults if there is no Close column
+
+    close_prices = data["Close"].dropna()  # Extracts the Close price series and removes missing values
+
+    if close_prices.empty or len(close_prices) < 2:  # Checks whether there are enough price points to calculate returns
+        return default_metrics(period)  # Returns defaults if there are too few points
+
+    returns = close_prices.pct_change().dropna()  # Computes percentage returns and removes first NaN row
+
+    if returns.empty:  # Checks whether returns series ended up empty
+        return {  # Returns a partial metrics dictionary with valid price details but zero return metrics
+            "annualised_expected_return": 0.0,  # No valid annualised expected return
+            "annualised_volatility": 0.0,  # No valid annualised volatility
+            "sharpe_like": 0.0,  # No valid Sharpe-like ratio
+            "latest_price": float(close_prices.iloc[-1]),  # Still returns latest available price
+            "price_start_date": close_prices.index[0].strftime("%Y-%m-%d"),  # First valid price date
+            "price_end_date": close_prices.index[-1].strftime("%Y-%m-%d"),  # Last valid price date
+            "price_observations": int(len(close_prices)),  # Number of price observations
+            "return_start_date": "N/A",  # No return start date available
+            "return_end_date": "N/A",  # No return end date available
+            "return_observations": 0,  # No return observations
+            "returns_series": None,  # No return series stored
+            "period_label": period,  # Keeps the original period label
+        }  # Ends partial metrics dictionary
+
+    annualised_volatility = float(returns.std() * np.sqrt(252))  # Converts daily standard deviation into annualised volatility
+    annualised_expected_return = float(returns.mean() * 252)  # Converts daily average return into annualised expected return
+    sharpe_like = safe_div(annualised_expected_return, annualised_volatility)  # Calculates return per unit of volatility safely
+    latest_price = float(close_prices.iloc[-1])  # Stores the latest available close price
+
+    return {  # Returns the full single-ticker metrics dictionary
+        "annualised_expected_return": annualised_expected_return,  # Stores annualised expected return
+        "annualised_volatility": annualised_volatility,  # Stores annualised volatility
+        "sharpe_like": sharpe_like,  # Stores Sharpe-like ratio
+        "latest_price": latest_price,  # Stores latest price
+        "price_start_date": close_prices.index[0].strftime("%Y-%m-%d"),  # First date in price series
+        "price_end_date": close_prices.index[-1].strftime("%Y-%m-%d"),  # Last date in price series
+        "price_observations": int(len(close_prices)),  # Number of valid prices
+        "return_start_date": returns.index[0].strftime("%Y-%m-%d"),  # First return date
+        "return_end_date": returns.index[-1].strftime("%Y-%m-%d"),  # Last return date
+        "return_observations": int(len(returns)),  # Number of valid returns
+        "returns_series": returns,  # Stores the full returns series for later use such as beta
+        "period_label": period,  # Keeps the input period label
+    }  # Ends the returned metrics dictionary
+
+def build_quarterly_forecast(latest_price: float, annualised_expected_return: float):  # Defines a helper function that projects quarterly prices based on annualised return
+    adjusted_return = max(annualised_expected_return, -0.95)  # Caps downside at -95% to prevent invalid math when raising negative values to fractional powers
+    quarterly_return = (1 + adjusted_return) ** 0.25 - 1  # Converts annual return assumption into an equivalent quarterly compounded return
+
+    q1_price = latest_price * (1 + quarterly_return)  # Forecasts end-of-quarter-1 price
+    q2_price = q1_price * (1 + quarterly_return)  # Forecasts end-of-quarter-2 price based on prior quarter
+    q3_price = q2_price * (1 + quarterly_return)  # Forecasts end-of-quarter-3 price
+    q4_price = q3_price * (1 + quarterly_return)  # Forecasts end-of-quarter-4 price
+
+    return {  # Returns all forecast outputs in one dictionary
+        "quarterly_return": quarterly_return,  # The implied quarterly expected return
+        "q1_expected_price": q1_price,  # Forecasted Q1 price
+        "q2_expected_price": q2_price, 
+        "q3_expected_price": q3_price,  
+        "q4_expected_price": q4_price,  
+    }  # Ends the forecast dictionary
+
+def score_and_decide(expected_return: float, volatility: float, sharpe_like: float, beta):  # Defines a scoring model that maps analytics into an investment decision and position size
+    score = 0  # Starts the score at zero before rules are applied
+
+    if expected_return >= 0.02:  # Checks whether annualised expected return is at least 2%
+        score += 2  # Adds 2 points for acceptable expected return
+    if volatility <= 0.08:  # Checks whether volatility is very low at 8% or below
+        score += 3  # Adds 3 points for very low volatility
+    elif volatility <= 0.12:  # Checks whether volatility is moderate at 12% or below
+        score += 1  # Adds 1 point for acceptable but not excellent volatility
+    if sharpe_like > 0.6:  # Checks whether risk-adjusted return is strong
+        score += 2  # Adds 2 points for strong Sharpe-like ratio
+    elif sharpe_like > 0.3:  # Checks whether Sharpe-like ratio is decent but not outstanding
+        score += 1  # Adds 1 point for moderate risk-adjusted return
+    if beta is not None:  # Only evaluates beta if it exists
+        if beta <= 0.9:  # Checks whether beta is defensively below market
+            score += 2  # Adds 2 points for low market sensitivity
+        elif beta <= 1.1:  # Checks whether beta is close to market-neutral
+            score += 1  # Adds 1 point for acceptable beta
+
+    if score >= 7:  # Highest score bucket
+        decision = "YES — high conviction"  # Sets decision to strongest buy-type category
+        weight = "6%"  # Sets recommended position size to 6%
+        tag = "High conviction"  # Sets frontend tag
+    elif score >= 5:  # Second-best score bucket
+        decision = "YES — core holding"  # Sets decision to core portfolio holding
+        weight = "3.5%"  # Sets recommended size to 3.5%
+        tag = "Core holding"  # Sets frontend tag
+    elif score >= 3:  # Mid-tier score bucket
+        decision = "YES — satellite"  # Sets decision to satellite/differentiated position
+        weight = "3%"  # Sets recommended size to 3%
+        tag = "Diversifier"  # Sets frontend tag
+    elif score >= 1:  # Low but still investable score bucket
+        decision = "LIMITED — high risk / exploratory"  # Sets decision to small speculative allocation
+        weight = "1–2%"  # Sets recommended range size
+        tag = "Exploratory"  # Sets frontend tag
+    else:  # Lowest score bucket
+        decision = "NO — hold as cash instead"  # Rejects the security and suggests staying in cash
+        weight = "Cash (5%)"  # Shows fallback cash position wording
+        tag = "Cash / Risk Control"  # Sets frontend tag
+
+    return {  # Returns all scoring outputs in a dictionary
+        "score": score,  # Final numeric score
+        "decision": decision,  # Final recommendation text
+        "recommended_weight": weight,  # Suggested portfolio weight
+        "tag": tag  # Short label for UI display
+    }  # Ends score dictionary
+
+def validate_portfolio_addition(portfolio_key, ticker, recommended_weight, sector, industry):  # Defines a helper to check whether a proposed position respects the selected portfolio rules
+    portfolio = PORTFOLIOS[portfolio_key]  # Retrieves the chosen portfolio definition from the global dictionary
+    errors = []  # Starts an empty list for hard validation failures
+    warnings = []  # Starts an empty list for softer review warnings
+
+    weight_decimal = parse_weight_to_decimal(recommended_weight)  # Converts text weight such as "3.5%" into decimal form
+    weight_percent = weight_decimal * 100  # Converts decimal back to percentage for human-readable validation messages
+
+    max_weight_allowed = get_effective_max_weight(portfolio)  # Finds the strictest max-weight rule for this portfolio
+    if max_weight_allowed is not None and weight_percent > max_weight_allowed:  # Checks whether proposed weight breaches allowed limit
+        errors.append(  # Adds a hard validation error message
+            f"Recommended weight of {weight_percent:.2f}% exceeds the portfolio limit of {max_weight_allowed:.2f}%."  # Creates readable error text
+        )  # Ends error append call
+
+    current_total_excluding_same_ticker = sum(  # Starts calculation of current total allocation while excluding this ticker if already present
+        stock.get("weight_decimal", 0.0)  # Uses each existing holding's decimal weight
+        for stock in selected_stocks[portfolio_key]  # Loops through all selected holdings in this portfolio
+        if stock.get("ticker") != ticker  # Excludes the same ticker so updates do not double-count existing allocation
+    )  # Ends sum expression
+
+    projected_total = current_total_excluding_same_ticker + weight_decimal  # Calculates what total allocation would become after adding/updating this position
+    if projected_total > 1.0:  # Checks whether projected portfolio weight would exceed 100%
+        errors.append(  # Adds a hard validation error
+            f"Projected total allocation would be {projected_total * 100:.2f}%, which exceeds 100%."  # User-friendly explanation of over-allocation
+        )  # Ends append call
+
+    legal_rule = str(portfolio.get("constraints", {}).get("legal", "")).lower()  # Reads the legal constraint text safely and converts it to lowercase for matching
+    if "prohibits equities" in legal_rule:  # Checks whether the mandate bans equity exposure
+        fixed_income_tickers = {"IEF", "SHY", "AGG", "BND", "TIP"}  # Defines a simple approved set of fixed-income-style tickers
+        if ticker not in fixed_income_tickers:  # Checks whether proposed ticker falls outside allowed fixed-income list
+            errors.append("This mandate prohibits equities. Only fixed-income style instruments should be added.")  # Adds hard compliance-style error
+
+    esg_rule = str(portfolio.get("constraints", {}).get("esg", "")).lower()  # Reads ESG constraint text safely in lowercase form
+    if "no tobacco" in esg_rule:  # Checks whether portfolio excludes tobacco exposure
+        sector_text = str(sector).lower()  # Converts sector text to lowercase for matching
+        industry_text = str(industry).lower()  # Converts industry text to lowercase for matching
+        if "tobacco" in sector_text or "tobacco" in industry_text:  # Checks whether sector or industry suggests tobacco exposure
+            errors.append("This mandate excludes tobacco-related exposure.")  # Adds hard ESG validation error
+
+    currency_rule = portfolio.get("constraints", {}).get("currency")  # Reads currency restriction from portfolio constraints
+    if currency_rule in ["EUR only", "CHF only"]:  # Checks whether the mandate allows only one currency
+        warnings.append(f"Manual currency review recommended because this mandate states {currency_rule}.")  # Adds warning because ticker currency is not fully validated in code
+
+    if portfolio.get("constraints", {}).get("esg") == "Required":  # Checks whether ESG compliance is required more generally
+        warnings.append("Manual ESG review recommended before final approval.")  # Adds soft warning for human review
+
+    return {  # Returns all validation outputs in one dictionary
+        "errors": errors,  # Hard validation failures
+        "warnings": warnings,  # Soft review warnings
+        "weight_decimal": weight_decimal  # Parsed weight value to reuse later without recalculating
+    }  # Ends validation dictionary
+
+# ============================================================
+# CRITERIA PAGE SECTION
+# Used by criteria.html
+# ============================================================
+
+def analyze_stock(ticker: str, benchmark_ticker: str, portfolio_key: str):
+    metrics_1y = compute_metrics(ticker, "1y")
+    metrics_3m = compute_metrics(ticker, "3mo")
+    benchmark_metrics = compute_metrics(benchmark_ticker, "1y")
+
+    beta = 0.0
+    benchmark_start_date = benchmark_metrics.get("return_start_date", "N/A")
+    benchmark_end_date = benchmark_metrics.get("return_end_date", "N/A")
+    beta_observations = 0
+
+    if metrics_1y["returns_series"] is not None and benchmark_metrics["returns_series"] is not None:
+        stock_aligned, bench_aligned = metrics_1y["returns_series"].align(
+            benchmark_metrics["returns_series"],
+            join="inner"
+        )
+
+        beta_observations = int(len(stock_aligned))
+
+        if len(stock_aligned) > 1 and bench_aligned.var() != 0:
+            beta = float(stock_aligned.cov(bench_aligned) / bench_aligned.var())
+
+    decision_pack = score_and_decide(
+        expected_return=metrics_1y["annualised_expected_return"],
+        volatility=metrics_1y["annualised_volatility"],
+        sharpe_like=metrics_1y["sharpe_like"],
+        beta=beta
+    )
+
+    try:
+        info = yf.Ticker(ticker).info or {}
+        sector = (
+            info.get("sector")
+            or info.get("category")
+            or info.get("fundCategory")
+            or "Unknown"
+        )
+        industry = (
+            info.get("industry")
+            or info.get("quoteType")
+            or info.get("fundFamily")
+            or "Unknown"
+        )
+    except Exception:
+        sector = "Unknown"
+        industry = "Unknown"
+
+    forecast_1y = build_quarterly_forecast(
+        latest_price=metrics_1y["latest_price"],
+        annualised_expected_return=metrics_1y["annualised_expected_return"]
+    )
+
+    forecast_3m = build_quarterly_forecast(
+        latest_price=metrics_3m["latest_price"],
+        annualised_expected_return=metrics_3m["annualised_expected_return"]
+    )
+
+    portfolio = PORTFOLIOS[portfolio_key]
+
+    return {
+        "ticker": ticker.upper(),
+        "portfolio_key": portfolio_key,
+        "portfolio_name": get_portfolio_display_name(portfolio),
+        "beta": beta,
+        "score": decision_pack["score"],
+        "decision": decision_pack["decision"],
+        "recommended_weight": decision_pack["recommended_weight"],
+        "sector": sector,
+        "industry": industry,
+        "tag": decision_pack["tag"],
+        "benchmark_ticker": benchmark_ticker,
+        "benchmark_start_date": benchmark_start_date,
+        "benchmark_end_date": benchmark_end_date,
+        "beta_observations": beta_observations,
+        "one_year": {
+            "annualised_expected_return": metrics_1y["annualised_expected_return"],
+            "annualised_volatility": metrics_1y["annualised_volatility"],
+            "sharpe_like": metrics_1y["sharpe_like"],
+            "latest_price": metrics_1y["latest_price"],
+            "price_start_date": metrics_1y["price_start_date"],
+            "price_end_date": metrics_1y["price_end_date"],
+            "price_observations": metrics_1y["price_observations"],
+            "return_start_date": metrics_1y["return_start_date"],
+            "return_end_date": metrics_1y["return_end_date"],
+            "return_observations": metrics_1y["return_observations"],
+            "forecast": {
+                "quarterly_return": forecast_1y["quarterly_return"],
+                "q1_expected_price": forecast_1y["q1_expected_price"],
+                "q2_expected_price": forecast_1y["q2_expected_price"],
+                "q3_expected_price": forecast_1y["q3_expected_price"],
+                "q4_expected_price": forecast_1y["q4_expected_price"],
+            }
+        },
+        "three_month": {
+            "annualised_expected_return": metrics_3m["annualised_expected_return"],
+            "annualised_volatility": metrics_3m["annualised_volatility"],
+            "sharpe_like": metrics_3m["sharpe_like"],
+            "latest_price": metrics_3m["latest_price"],
+            "price_start_date": metrics_3m["price_start_date"],
+            "price_end_date": metrics_3m["price_end_date"],
+            "price_observations": metrics_3m["price_observations"],
+            "return_start_date": metrics_3m["return_start_date"],
+            "return_end_date": metrics_3m["return_end_date"],
+            "return_observations": metrics_3m["return_observations"],
+            "forecast": {
+                "quarterly_return": forecast_3m["quarterly_return"],
+                "q1_expected_price": forecast_3m["q1_expected_price"],
+                "q2_expected_price": forecast_3m["q2_expected_price"],
+                "q3_expected_price": forecast_3m["q3_expected_price"],
+                "q4_expected_price": forecast_3m["q4_expected_price"],
+            }
+        }
+    }
+
+# ============================================================
+# MARKET DASHBOARD SECTION
+# Used by market_dashboard.html
+# ============================================================
+MASTER_TICKERS = {
+    "fixed_income": [
         "SHY", "IEF", "TLT", "BND", "AGG", "TIP", "LQD", "HYG", "VGIT", "VCIT",
         "MINT", "BIL", "JPST", "SCHR", "SCHZ", "IGIB", "SPTI", "GOVT", "BSV", "VGSH"
     ],
-    defensive_equities: [ // lower-risk or more defensive shares and ETFs
+    "defensive_equities": [
         "XLP", "XLV", "XLU", "PG", "KO", "PEP", "JNJ", "MRK", "PFE",
         "WMT", "MCD", "CL", "KMB", "DUK", "SO", "NEE", "GIS", "MDT", "HSY", "EL"
     ],
-    core_equities: [ // larger core holdings that would often sit in a main portfolio
+    "core_equities": [
         "AAPL", "MSFT", "AMZN", "GOOGL", "META", "JPM", "V", "MA", "UNH",
         "HD", "ADBE", "CRM", "ORCL", "CSCO", "INTU", "AVGO", "NFLX",
         "QCOM", "LIN", "TXN", "HON", "CAT", "IBM", "AMGN", "NOW", "BKNG",
         "AXP", "GS", "BLK", "SPGI"
     ],
-    growth_equities: [ // higher-growth names, usually more volatile
+    "growth_equities": [
         "TSLA", "NVDA", "AMD", "SHOP", "SQ", "UBER", "PANW", "CRWD", "SNOW", "PLTR",
         "MDB", "DDOG", "NET", "ZS", "TEAM", "ABNB", "MELI", "SE", "TTD", "ROKU",
         "ARKK", "QQQ", "SMH", "SOXX", "IWF", "VUG", "XLK", "FTEC", "SCHG", "MGK"
     ],
-    international_equities: [ // international and regional exposure for diversification
+    "international_equities": [
         "VEA", "IEFA", "EWG", "EWQ", "EWI", "EWJ", "EWS", "EWA", "EWU", "EWP",
         "VGK", "EZU", "FEZ", "AAXJ", "VWO", "EEM", "INDA", "EWY", "MCHI", "FXI",
         "EWZ", "EWT", "EIDO", "EPHE", "EZA", "ERUS", "EWC", "EWL", "EWD", "EWN"
     ],
-    alternatives: [ // non-traditional exposures like commodities, real assets, crypto-linked products, etc.
+    "alternatives": [
         "GLD", "SLV", "VNQ", "REET", "SCHH", "REM", "DBC", "PDBC", "USO", "IAU",
         "VNQI", "RWO", "FTGC", "COMT", "GSG", "DBA", "UUP", "FXE", "FXF", "FXY",
         "BITO", "ETHE", "PALL", "PLTM", "URA", "COPX", "WOOD", "HACK", "CIBR", "KWEB"
     ]
-};
-
-
-// =========================================================
-// SHARED SECTION → SMALL HELPER FUNCTIONS
-// These are utility functions I can reuse in different places
-// so the main logic stays cleaner and easier to understand.
-// =========================================================
-
-function setText(id, value) { // quick helper to update text in one element by id
-    const el = document.getElementById(id); // first I look for the element
-    if (el) { // only update it if it actually exists on that page
-        el.textContent = value; // then replace its visible text
-    }
-}
-
-function fmtPercent(value) { // used when I want decimals like 0.125 to display as 12.50%
-    return value === null || value === undefined || isNaN(value)
-        ? "N/A" // keeps the screen clean if the value is missing or invalid
-        : `${(value * 100).toFixed(2)}%`; // converts decimal to percent and keeps formatting consistent
-}
-
-function fmtNumber(value) { // used for things like beta, price, or Sharpe-like values
-    return value === null || value === undefined || isNaN(value)
-        ? "N/A"
-        : Number(value).toFixed(2); // forces a neat 2-decimal format across the UI
-}
-
-function parseNumber(value) { // safely turns text input into a real number
-    const num = parseFloat(value); // parseFloat is useful because many inputs arrive as strings
-    return isNaN(num) ? null : num; // null is easier to test later than NaN
-}
-
-function getSelectedPortfolioName() { // gets the visible label from the portfolio dropdown
-    if (!portfolioSelect) return "Unknown Portfolio"; // safe fallback in case the dropdown is not on the page
-    return portfolioSelect.options[portfolioSelect.selectedIndex].text; // returns the text the user sees, not just the hidden value
 }
 
 
-// =========================================================
-// SHARED SECTION → MESSAGE BOX HELPERS
-// These are mostly for the criteria page, where the user needs
-// feedback after analysing or adding a stock.
-// =========================================================
-
-function showTradeMessage(message, type = "info") { // shows one message or a list of messages with a style like info/success/error
-    if (!tradeMessage) return; // if the message box is not on the page, just stop quietly
-    tradeMessage.className = `trade-message ${type}`; // swaps the class so CSS can colour it correctly
-    tradeMessage.innerHTML = Array.isArray(message) ? message.join("<br>") : message; // if there are multiple messages, show each on a new line
-}
-
-function clearTradeMessage() { // resets the message box back to blank
-    if (!tradeMessage) return;
-    tradeMessage.className = "trade-message"; // removes any success/error/info styling
-    tradeMessage.textContent = ""; // clears the visible text
-}
-
-
-// =========================================================
-// SHARED SECTION → ACCORDION / COLLAPSIBLE LOGIC
-// This is reused in places where content needs to open and close,
-// like portfolio sections or checklist panels.
-// =========================================================
-
-function attachAccordion(button) { // gives one accordion button its open/close behaviour
-    if (!button || button.dataset.bound === "true") { // avoids errors and also stops duplicate event listeners
-        return;
-    }
-
-    button.dataset.bound = "true"; // marks the element so I do not attach the same click event twice
-
-    button.addEventListener("click", function () { // when the button is clicked, toggle the related panel
-        this.classList.toggle("active"); // helps with styling the open state
-
-        const panel = this.nextElementSibling; // accordion assumes the panel comes immediately after the button
-        if (!panel) return; // safe guard in case the HTML structure is wrong
-
-        panel.style.display = panel.style.display === "block" ? "none" : "block"; // simple show/hide toggle
-    });
-}
-
-function initialiseStaticAccordions() { // finds all accordion buttons already written in the page and activates them
-    document.querySelectorAll(".accordion").forEach(attachAccordion);
-}
-
-function initialiseChecklistCollapsible() { // similar idea, but for checklist-style collapsible buttons
-    const buttons = document.querySelectorAll(".collapsible-btn"); // selects all matching collapsible buttons
-
-    buttons.forEach(button => {
-        if (button.dataset.bound === "true") return; // same duplicate-protection idea as the accordion helper
-        button.dataset.bound = "true";
-
-        button.addEventListener("click", function () {
-            const content = this.nextElementSibling; // assumes the collapsible content sits right after the button
-            if (!content) return;
-
-            content.style.display = content.style.display === "block" ? "none" : "block"; // toggles visibility
-        });
-    });
-}
-
-     // =========================================================
-    // INDEX.HTML LOGIC
-    // What this section is for:
-    // - keeps homepage logic in one place
-    // - makes the file easier to grow later
-    // =========================================================
-
-    function initialiseIndexPage() { // this is just a starter function for the home page in case I want to add home page behaviour later
-        const isIndexPage = window.location.pathname === "/" || window.location.pathname.endsWith("index.html"); // checks if the current page is the homepage
-        if (!isIndexPage) return; // if I am not on the home page, this section should do nothing
-
-        
-    } 
-
-    // =========================================================
-    // CONTACT.HTML LOGIC
-    // What this section is for:
-    // - keeps contact page logic separate from the rest
-    // - useful later if I add validation or interactive behaviour
-    // =========================================================
-
-    function initialiseContactPage() { // this is a placeholder function for contact page logic if I want to build it later
-        const isContactPage = window.location.pathname.includes("contact"); // checks if the page loaded is the contact page
-        if (!isContactPage) return; // if I am not on contact.html, this part should not run
-
-    } 
-
-
-    // =========================================================
-    // CONTACT.HTML SECTION
-    // Purpose:
-    // - Keep a dedicated place for contact page logic
-    // - Easy to expand later if contact form validation is added
-    // =========================================================
-
-    function initialiseContactPage() { // Creates an initialiser for the contact page so contact-specific logic can be added later in a clean section
-        const isContactPage = window.location.pathname.includes("contact"); // Checks whether the current page is the contact page
-        if (!isContactPage) return; // Stops immediately if the current page is not contact.html
-
-    } 
-
-     // =========================================================
-    // CRITERIA.HTML → TICKER DROPDOWN
-    // What this section is doing:
-    // - fills the ticker dropdown using the full ticker universe
-    // - replaces the old short hardcoded list
-    // - groups tickers so the dropdown is easier to use
-    // =========================================================
-
-    function populateTickerDropdown() { // this builds the whole ticker dropdown dynamically instead of typing all options by hand in HTML
-        if (!tickerSelect) return; // if the ticker dropdown is not on the page, there is nothing to build
-
-        tickerSelect.innerHTML = ""; // clears old options first so I do not accidentally duplicate them
-
-        const placeholder = document.createElement("option"); // creates the first default option shown before the user picks a ticker
-        placeholder.value = ""; // empty value makes it easier to validate if no real ticker was chosen
-        placeholder.textContent = "-- Choose a ticker --"; // text the user sees first in the dropdown
-        placeholder.selected = true; // makes this the default visible option
-        placeholder.disabled = false; // keeps it visible and selectable as the default top option
-        tickerSelect.appendChild(placeholder); // adds the placeholder into the dropdown first
-
-        Object.entries(tickerUniverse).forEach(([category, tickers]) => { // loops through each category and its list of tickers
-            const optgroup = document.createElement("optgroup"); // creates a grouped section inside the dropdown so tickers are organised by type
-            optgroup.label = category.replace(/_/g, " ").replace(/\b\w/g, char => char.toUpperCase()); // turns something like fixed_income into Fixed Income for display
-
-            tickers.forEach(ticker => { // now loops through each ticker inside that category
-                const option = document.createElement("option"); // creates one dropdown option for one ticker
-                option.value = ticker; // this is the value sent when the form is submitted
-                option.textContent = ticker; // this is what the user sees in the dropdown
-                optgroup.appendChild(option); // puts the ticker inside the right grouped section
-            });
-
-            tickerSelect.appendChild(optgroup); // after building one full category, adds it into the select menu
-        }); 
-    } 
-
-    // =========================================================
-    // CRITERIA.HTML → RESETTING THE ANALYSIS AREA
-    // What this section is doing:
-    // - clears old analysis results
-    // - prevents stale data staying on screen
-    // - resets the add button and message area
-    // =========================================================
-
-    function clearAnalysisFields() { // this resets all the analysis output fields back to a neutral state
-        [ // this array holds all the ids that show analysis results on the Criteria page
-            "beta-value",
-            "score-value",
-            "decision-value",
-            "weight-value",
-            "sector-value",
-            "industry-value",
-            "tag-value",
-            "1y-er-value",
-            "1y-vol-value",
-            "1y-sharpe-value",
-            "1y-latest-price-value",
-            "1y-price-start-value",
-            "1y-price-end-value",
-            "1y-price-obs-value",
-            "1y-return-start-value",
-            "1y-return-end-value",
-            "1y-return-obs-value",
-            "1y-quarterly-return-value",
-            "1y-q1-price-value",
-            "1y-q2-price-value",
-            "1y-q3-price-value",
-            "1y-q4-price-value",
-            "3m-er-value",
-            "3m-vol-value",
-            "3m-sharpe-value",
-            "3m-latest-price-value",
-            "3m-price-start-value",
-            "3m-price-end-value",
-            "3m-price-obs-value",
-            "3m-return-start-value",
-            "3m-return-end-value",
-            "3m-return-obs-value",
-            "3m-quarterly-return-value",
-            "3m-q1-price-value",
-            "3m-q2-price-value",
-            "3m-q3-price-value",
-            "3m-q4-price-value",
-            "benchmark-ticker-value",
-            "benchmark-start-value",
-            "benchmark-end-value",
-            "beta-obs-value"
-        ].forEach(id => setText(id, "N/A")); // goes through every result field and resets the visible value to N/A
-
-        setText("result-ticker", "Select a stock to analyze"); // puts the main title back to the default message
-        setText("portfolio-name", getSelectedPortfolioName()); // refreshes the portfolio name shown on screen based on the current dropdown selection
-
-        if (addButton) { // only do this if the add button exists on this page
-            addButton.disabled = true; // disables the add/update button until a new valid analysis is done
-        } 
-
-        latestAnalysis = null; // clears the saved analysis object so old data cannot be added by mistake
-        clearTradeMessage(); // removes any old success or error message still showing
-    } 
-
-    // =========================================================
-    // CRITERIA.HTML → CURRENT PORTFOLIO HOLDINGS DISPLAY
-    // What this section is doing:
-    // - builds the portfolio holdings area from backend data
-    // - shows summary numbers for each portfolio
-    // - creates accordion sections for cleaner viewing
-    // =========================================================
-
-    function renderPortfolioGroups(grouped) { // this takes the grouped portfolio data from Flask and turns it into visible HTML
-        const container = document.getElementById("portfolio-groups"); // finds the area where the grouped portfolio sections should appear
-        if (!container) return; // if that container is not on the page, nothing should be rendered
-
-        container.innerHTML = ""; // clears old content first so I do not stack duplicated portfolio sections
-
-        Object.entries(grouped).forEach(([, data]) => { // loops through each portfolio in the grouped data object
-            const button = document.createElement("button"); // creates the accordion button for one portfolio
-            button.className = "accordion portfolio-group-button"; // gives it the same style and behaviour classes as the rest of the accordions
-            button.type = "button"; // makes sure it behaves like a normal button and not a submit button
-            button.textContent = data.portfolio_name; // uses the portfolio name as the accordion title
-
-            const panel = document.createElement("div"); // creates the hidden panel that opens below the button
-            panel.className = "panel"; // applies the panel styling used for accordion content
-
-            const summary = data.summary || {}; // safely reads the summary object for that portfolio, or uses an empty object if missing
-
-            const summaryBox = document.createElement("div"); // creates a small box for the portfolio summary stats
-            summaryBox.className = "portfolio-summary"; // gives it the summary styling so the layout stays neat
-            summaryBox.innerHTML = `
-                <p><strong>Positions:</strong> ${summary.position_count ?? 0}</p>
-                <p><strong>Total Allocated:</strong> ${summary.total_allocated_percent ?? 0}%</p>
-                <p><strong>Remaining Cash:</strong> ${summary.remaining_cash_percent ?? 100}%</p>
-                <p><strong>Average Beta:</strong> ${summary.average_beta ?? "N/A"}</p>
-            `; 
-            panel.appendChild(summaryBox); // places the summary box inside the panel before the stock list
-
-            if (!data.stocks || data.stocks.length === 0) { // checks if this portfolio currently has no saved stocks
-                const empty = document.createElement("p"); // creates a simple paragraph for the empty message
-                empty.textContent = "No stocks added yet."; // message shown when nothing has been added
-                panel.appendChild(empty); // adds that message into the panel
-            } else { // if stocks do exist, build the table instead
-                const table = document.createElement("table"); // creates a table to display the saved holdings
-                table.className = "table"; // uses the main table styling from the site
-
-                table.innerHTML = `
-                    <thead>
-                        <tr>
-                            <th>Ticker</th>
-                            <th>Recommended Weight</th>
-                            <th>Decision</th>
-                            <th>Tag</th>
-                            <th>Sector</th>
-                            <th>Industry</th>
-                            <th>Beta</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.stocks.map(stock => `
-                            <tr>
-                                <td>${stock.ticker}</td>
-                                <td>${stock.recommended_weight}</td>
-                                <td>${stock.decision}</td>
-                                <td>${stock.tag}</td>
-                                <td>${stock.sector || "Unknown"}</td>
-                                <td>${stock.industry || "Unknown"}</td>
-                                <td>${stock.beta !== null && stock.beta !== undefined ? Number(stock.beta).toFixed(2) : "N/A"}</td>
-                            </tr>
-                        `).join("")}
-                    </tbody>
-                `; 
-
-                panel.appendChild(table); // inserts the finished holdings table into the panel
-            } 
-
-            container.appendChild(button); // adds the accordion button into the portfolio groups area
-            container.appendChild(panel); // adds the matching panel directly underneath the button
-            attachAccordion(button); // connects accordion open/close behaviour to this new button
-        }); 
-    } 
-
-    // =========================================================
-    // CRITERIA.HTML → LOAD HOLDINGS FROM FLASK
-    // What this section is doing:
-    // - requests grouped portfolio data from the backend
-    // - sends that data to the render function above
-    // =========================================================
-
-    async function loadPortfolioGroups() { // this gets the current saved portfolio holdings from Flask
-        const container = document.getElementById("portfolio-groups"); // finds the place where the holdings should be shown
-        if (!container) return; // if that area is not on the page, skip this request
-
-        try { // using try/catch here so the page does not crash if the fetch fails
-            const res = await fetch("/portfolio-stocks"); // asks Flask for the grouped portfolio stock data
-            const data = await res.json(); // converts the JSON response into a JavaScript object
-            renderPortfolioGroups(data); // sends the returned data into the render function so it appears on screen
-        } catch (error) { // catches problems like failed fetch or invalid response
-            console.error("Failed to load portfolio groups:", error); // prints a helpful error message in the console for debugging
-        } 
-    } 
-
-    // =========================================================
-    // CRITERIA.HTML → ANALYSE TICKER FORM
-    // Why this section matters:
-    // - sends the selected ticker and portfolio to Flask
-    // - gets the analysis back without refreshing the page
-    // - fills the results area with the returned data
-  
-    // =========================================================
-
-    function initialiseCriteriaAnalysisForm() { // this sets up the analyse form only for the Criteria page
-        if (!form) return; // if the form is not on this page, the function stops safely
-
-        form.addEventListener("submit", async function (e) { // waits for the user to submit the form and then runs async code
-            e.preventDefault(); // stops the normal page refresh because I want to handle the request with JavaScript
-            clearTradeMessage(); // clears any old message before starting a fresh analysis
-
-            const formData = new FormData(form); // collects the form values so they can be sent to Flask
-
-            try { // using try/catch here so failed requests do not break the page
-                const res = await fetch("/analyze", { // sends the form data to the Flask analyze route
-                    method: "POST", // using POST because data is being submitted
-                    body: formData, // sends the actual form fields
-                    headers: { "X-Requested-With": "XMLHttpRequest" } // lets Flask know this is an async request from JavaScript
-                });
-
-                const data = await res.json(); // turns the server response into a JavaScript object
-
-                if (!res.ok || data.error) { // checks if the request failed technically or if Flask returned an app-level error
-                    clearAnalysisFields(); // clears old values so the page does not show stale results
-                    setText("result-ticker", "Analysis Error"); // updates the heading to show that something went wrong
-                    setText("decision-value", data.error || "Could not load analysis."); // shows the error inside the results area
-                    showTradeMessage(data.error || "Could not load analysis.", "error"); // shows a clear message for the user
-                    return; // stops here so the success logic below does not run
-                } 
-
-                latestAnalysis = data; // saves the latest successful analysis so it can be reused when adding to portfolio
-
-                if (addButton) { // only runs if the add button exists on the page
-                    addButton.disabled = false; // unlocks the button because there is now a valid analysis to save
-                } 
-
-                setText("result-ticker", `${data.ticker} — Analysis Summary`); // shows the analysed ticker in the result heading
-                setText("portfolio-name", data.portfolio_name || getSelectedPortfolioName()); // shows the returned portfolio name or falls back to the dropdown value
-                setText("beta-value", data.beta === null ? "N/A" : fmtNumber(data.beta)); // shows beta in a clean format
-                setText("score-value", data.score ?? "N/A"); // shows the investment score
-                setText("decision-value", data.decision || "N/A"); // shows the final decision label
-                setText("weight-value", data.recommended_weight || "N/A"); // shows the suggested position size
-                setText("sector-value", data.sector || "Unknown"); // shows sector or a fallback if missing
-                setText("industry-value", data.industry || "Unknown"); // shows industry or a fallback if missing
-                setText("tag-value", data.tag || "N/A"); // shows the short tag used in the UI
-
-                if (data.one_year) { // this block fills the 1-year section if Flask returned it
-                    setText("1y-er-value", fmtPercent(data.one_year.annualised_expected_return)); // expected return shown as a percentage
-                    setText("1y-vol-value", fmtPercent(data.one_year.annualised_volatility)); // volatility shown as a percentage
-                    setText("1y-sharpe-value", fmtNumber(data.one_year.sharpe_like)); // Sharpe-like value shown as a regular number
-                    setText("1y-latest-price-value", fmtNumber(data.one_year.latest_price)); // latest price formatted nicely
-                    setText("1y-price-start-value", data.one_year.price_start_date || "N/A"); // first date in the price series
-                    setText("1y-price-end-value", data.one_year.price_end_date || "N/A"); // last date in the price series
-                    setText("1y-price-obs-value", data.one_year.price_observations ?? "N/A"); // total number of price observations
-                    setText("1y-return-start-value", data.one_year.return_start_date || "N/A"); // first return date
-                    setText("1y-return-end-value", data.one_year.return_end_date || "N/A"); // last return date
-                    setText("1y-return-obs-value", data.one_year.return_observations ?? "N/A"); // total number of return observations
-
-                    if (data.one_year.forecast) { // this nested block fills the 1-year forecast section if forecast data exists
-                        setText("1y-quarterly-return-value", fmtPercent(data.one_year.forecast.quarterly_return)); // quarterly return used in the forecast
-                        setText("1y-q1-price-value", fmtNumber(data.one_year.forecast.q1_expected_price)); // forecasted Q1 price
-                        setText("1y-q2-price-value", fmtNumber(data.one_year.forecast.q2_expected_price)); // forecasted Q2 price
-                        setText("1y-q3-price-value", fmtNumber(data.one_year.forecast.q3_expected_price)); // forecasted Q3 price
-                        setText("1y-q4-price-value", fmtNumber(data.one_year.forecast.q4_expected_price)); // forecasted Q4 price
-                    } 
-                }
-
-                if (data.three_month) { // this block fills the 3-month section if Flask returned it
-                    setText("3m-er-value", fmtPercent(data.three_month.annualised_expected_return)); // 3-month expected return
-                    setText("3m-vol-value", fmtPercent(data.three_month.annualised_volatility)); // 3-month volatility
-                    setText("3m-sharpe-value", fmtNumber(data.three_month.sharpe_like)); // 3-month Sharpe-like value
-                    setText("3m-latest-price-value", fmtNumber(data.three_month.latest_price)); // latest price in this shorter window
-                    setText("3m-price-start-value", data.three_month.price_start_date || "N/A"); // first price date in the 3-month sample
-                    setText("3m-price-end-value", data.three_month.price_end_date || "N/A"); // last price date in the 3-month sample
-                    setText("3m-price-obs-value", data.three_month.price_observations ?? "N/A"); // number of price rows in the 3-month sample
-                    setText("3m-return-start-value", data.three_month.return_start_date || "N/A"); // first return date in the 3-month sample
-                    setText("3m-return-end-value", data.three_month.return_end_date || "N/A"); // last return date in the 3-month sample
-                    setText("3m-return-obs-value", data.three_month.return_observations ?? "N/A"); // number of return rows in the 3-month sample
-
-                    if (data.three_month.forecast) { // this fills the shorter-term forecast area if forecast data is available
-                        setText("3m-quarterly-return-value", fmtPercent(data.three_month.forecast.quarterly_return)); // quarterly return from the 3-month model view
-                        setText("3m-q1-price-value", fmtNumber(data.three_month.forecast.q1_expected_price)); // forecasted Q1 price
-                        setText("3m-q2-price-value", fmtNumber(data.three_month.forecast.q2_expected_price)); // forecasted Q2 price
-                        setText("3m-q3-price-value", fmtNumber(data.three_month.forecast.q3_expected_price)); // forecasted Q3 price
-                        setText("3m-q4-price-value", fmtNumber(data.three_month.forecast.q4_expected_price)); // forecasted Q4 price
-                    } 
-                } 
-
-                setText("benchmark-ticker-value", data.benchmark_ticker || "N/A"); // shows which benchmark was used for beta
-                setText("benchmark-start-value", data.benchmark_start_date || "N/A"); // shows benchmark data start date
-                setText("benchmark-end-value", data.benchmark_end_date || "N/A"); // shows benchmark data end date
-                setText("beta-obs-value", data.beta_observations ?? "N/A"); // shows how many overlapping observations were used for beta
-
-                showTradeMessage("Analysis completed. Review mandate fit before adding to portfolio.", "info"); // gives the user a final prompt before they save the position
-            } catch (error) { // catches network problems or unexpected issues
-                clearAnalysisFields(); // resets the result area if something failed badly
-                setText("result-ticker", "Request Failed"); // updates the heading so the failure is obvious
-                setText("decision-value", "Could not load analysis."); // shows a fallback message in the decision box
-                showTradeMessage("Could not load analysis.", "error"); // shows an error banner/message
-                console.error(error); // logs technical detail in the browser console for debugging
-            }
-        }); 
-    } 
-
-    // =========================================================
-    // CRITERIA.HTML → ADD / UPDATE PORTFOLIO
-    // Why this section matters:
-    // - saves the analysed ticker into the chosen portfolio
-    // - updates an existing position if that ticker is already there
-    // - refreshes the portfolio view after saving
-    // =========================================================
-
-    function initialiseCriteriaAddToPortfolio() { // this sets up the Add / Update Portfolio button logic
-        if (!addButton) return; // if the button is not on the page, nothing should run
-
-        addButton.addEventListener("click", async function () { // waits for the button click and then sends data to Flask
-            if (!latestAnalysis) return; // blocks the action if there is no analysis saved yet
-
-            const selectedPortfolioKey = portfolioSelect ? portfolioSelect.value : latestAnalysis.portfolio_key; // gets the selected portfolio key, or falls back to the last analysis
-            const selectedPortfolioName = getSelectedPortfolioName(); // gets the visible portfolio name from the dropdown
-
-            try { // wrapped in try/catch so save errors do not crash the page
-                const res = await fetch("/add-to-portfolio", { // sends the stock data to Flask for validation and storage
-                    method: "POST", // POST is used because we are sending new data to the backend
-                    headers: { "Content-Type": "application/json" }, // tells Flask that the request body is JSON
-                    body: JSON.stringify({ // turns the JavaScript object into JSON before sending it
-                        ticker: latestAnalysis.ticker, // analysed ticker symbol
-                        portfolio_key: selectedPortfolioKey, // selected portfolio key
-                        portfolio_name: selectedPortfolioName, // selected portfolio display name
-                        recommended_weight: latestAnalysis.recommended_weight, // suggested position size
-                        decision: latestAnalysis.decision, // model decision
-                        tag: latestAnalysis.tag, // short category tag
-                        sector: latestAnalysis.sector, // sector value from analysis
-                        industry: latestAnalysis.industry, // industry value from analysis
-                        beta: latestAnalysis.beta // beta value from analysis
-                    }) 
-                }); 
-
-                const data = await res.json(); // reads Flask response as JSON
-
-                if (!res.ok || data.error) { // checks if Flask returned a validation problem or server-side error
-                    const errors = Array.isArray(data.error) ? data.error : [data.error || "Failed to add stock."]; // makes sure errors are always handled as an array
-                    const warnings = Array.isArray(data.warnings) ? data.warnings : []; // does the same for warnings
-                    showTradeMessage([...errors, ...warnings], "error"); // shows all returned messages together in the UI
-                    return; // stops so success logic does not run by mistake
-                } 
-
-                renderPortfolioGroups(data.portfolio); // redraws the grouped portfolio area using the updated backend data
-
-                const messages = [data.message || "Portfolio updated."]; // starts the success message list with Flask response text
-                if (Array.isArray(data.warnings) && data.warnings.length > 0) { // checks if warnings came back with a valid save
-                    messages.push(...data.warnings); // adds warnings under the main success message
-                } 
-
-                showTradeMessage(messages, "success"); // shows the final success message on the page
-            } catch (error) { // catches request failures or JSON parsing problems
-                showTradeMessage("Failed to add to portfolio.", "error"); // shows a clean error message to the user
-                console.error("Failed to add to portfolio:", error); // keeps the technical error in the console for debugging
-            }
-        }); 
-    } 
-
-    function initialiseCriteriaPage() { // this is the main starter function for everything related to criteria.html
-        const isCriteriaPage = window.location.pathname.includes("criteria"); // checks whether the current page is really the Criteria page
-        if (!isCriteriaPage) return; // if not, the whole section stops
-
-        populateTickerDropdown(); // fills the ticker dropdown with the full ticker list
-        initialiseCriteriaAnalysisForm(); // activates the analyse form logic
-        initialiseCriteriaAddToPortfolio(); // activates the add/update portfolio logic
-        loadPortfolioGroups(); // loads current saved holdings into the page
-
-        if (portfolioSelect) { // only adds this listener if the dropdown exists
-            portfolioSelect.addEventListener("change", function () { // runs when the user changes the portfolio
-                clearAnalysisFields(); // clears old analysis because it may no longer match the new portfolio
-                setText("portfolio-name", getSelectedPortfolioName()); // updates the shown portfolio name immediately
-            }); 
-        } 
-    } 
-
-    // =========================================================
-    // MARKET_DASHBOARD.HTML → FILTERS, PRESETS, AND SORTING
-    // Why this section matters:
-    // - lets the user screen the investment universe quickly
-    // - supports both manual filters and one-click preset buttons
-    // - also allows sorting by clicking the table headers
-    // =========================================================
-
-    function initialiseMarketDashboard() { // this is the main setup function for the dashboard page
-        if (!marketTable) return; // if the market table is not on this page, the dashboard logic should not run
-
-        const tbody = marketTable.querySelector("tbody"); // gets the table body because this is where the data rows live
-        const headers = marketTable.querySelectorAll("th[data-sort]"); // gets only the sortable headers
-
-        const tickerFilter = document.getElementById("ticker-filter"); // dropdown used to filter by ticker
-        const decisionFilter = document.getElementById("decision-filter"); // dropdown used to filter by decision
-        const scoreFilter = document.getElementById("score-filter"); // dropdown used to filter by minimum score
-        const volatilityFilter = document.getElementById("volatility-filter"); // input used to set a volatility ceiling
-        const sharpeFilter = document.getElementById("sharpe-filter"); // input used to set a minimum Sharpe value
-        const summary = document.getElementById("dashboard-summary"); // text area that tells the user how many rows are showing
-
-        const presetLowRisk = document.getElementById("preset-low-risk"); // button for low-risk screen
-        const presetHighConviction = document.getElementById("preset-high-conviction"); // button for high-conviction screen
-        const presetCore = document.getElementById("preset-core"); // button for core holding screen
-        const presetSatellite = document.getElementById("preset-satellite"); // button for satellite screen
-        const presetExploratory = document.getElementById("preset-exploratory"); // button for exploratory screen
-        const presetIncome = document.getElementById("preset-income"); // button for income / defensive screen
-        const presetBestRanked = document.getElementById("preset-best-ranked"); // button for best-ranked screen
-        const presetCash = document.getElementById("preset-cash"); // button for cash screen
-        const clearFiltersBtn = document.getElementById("clear-filters"); // button that resets everything
-
-        let activePreset = ""; // keeps track of which preset is currently active
-
-        function applyDashboardFilters() { // this function reads the filters and decides which rows stay visible
-            const rows = tbody.querySelectorAll("tr"); // gets all current rows in the market table
-
-            const tickerValue = tickerFilter ? tickerFilter.value.toUpperCase() : ""; // reads selected ticker and standardises it to uppercase
-            const decisionValue = decisionFilter ? decisionFilter.value : ""; // reads selected decision value
-            const scoreValue = scoreFilter ? parseNumber(scoreFilter.value) : null; // reads score filter and safely converts it to a number
-            const volatilityValue = volatilityFilter ? parseNumber(volatilityFilter.value) : null; // reads max volatility filter
-            const sharpeValue = sharpeFilter ? parseNumber(sharpeFilter.value) : null; // reads min Sharpe filter
-
-            let visibleCount = 0; // this will count how many rows survive the filters
-
-            rows.forEach(row => { // checks every row one by one
-                const rowTicker = (row.dataset.ticker || "").toUpperCase(); // gets row ticker from the data attribute
-                const rowDecision = row.dataset.decision || ""; // gets row decision from the data attribute
-                const rowScore = parseNumber(row.dataset.score); // gets row score
-                const rowVolatility = parseNumber(row.dataset.volatility); // gets row volatility
-                const rowSharpe = parseNumber(row.dataset.sharpe); // gets row Sharpe-like value
-
-                const rowIsLowRisk = row.dataset.lowRisk === "true"; // converts low-risk flag into a true/false value
-                const rowIsHighConviction = row.dataset.highConviction === "true"; // converts high-conviction flag into a true/false value
-                const rowIsCoreHolding = row.dataset.coreHolding === "true"; // converts core-holding flag into a true/false value
-                const rowIsSatellite = row.dataset.satellite === "true"; // converts satellite flag into a true/false value
-                const rowIsExploratory = row.dataset.exploratory === "true"; // converts exploratory flag into a true/false value
-                const rowIsCashCandidate = row.dataset.cashCandidate === "true"; // converts cash-candidate flag into a true/false value
-                const rowIsIncomeCandidate = row.dataset.incomeCandidate === "true"; // converts income-candidate flag into a true/false value
-                const rowIsBestRanked = row.dataset.bestRanked === "true"; // converts best-ranked flag into a true/false value
-
-                let visible = true; // starts by assuming the row should be shown
-
-                if (tickerValue && rowTicker !== tickerValue) visible = false; // hides the row if ticker does not match
-                if (decisionValue && rowDecision !== decisionValue) visible = false; // hides the row if decision does not match
-                if (scoreValue !== null && (rowScore === null || rowScore < scoreValue)) visible = false; // hides rows below the chosen score
-                if (volatilityValue !== null && (rowVolatility === null || rowVolatility > volatilityValue)) visible = false; // hides rows above the max volatility
-                if (sharpeValue !== null && (rowSharpe === null || rowSharpe < sharpeValue)) visible = false; // hides rows below the minimum Sharpe
-
-                if (activePreset === "low-risk" && !rowIsLowRisk) visible = false; // keeps only low-risk rows when that preset is active
-                if (activePreset === "high-conviction" && !rowIsHighConviction) visible = false; // keeps only high-conviction rows
-                if (activePreset === "core" && !rowIsCoreHolding) visible = false; // keeps only core holdings
-                if (activePreset === "satellite" && !rowIsSatellite) visible = false; // keeps only satellite rows
-                if (activePreset === "exploratory" && !rowIsExploratory) visible = false; // keeps only exploratory rows
-                if (activePreset === "cash" && !rowIsCashCandidate) visible = false; // keeps only cash-decision rows
-                if (activePreset === "income" && !rowIsIncomeCandidate) visible = false; // keeps only income / defensive rows
-                if (activePreset === "best-ranked" && !rowIsBestRanked) visible = false; // keeps only best-ranked rows
-
-                row.style.display = visible ? "" : "none"; // either shows or hides the row in the table
-
-                if (visible) visibleCount += 1; // adds to the count if the row is still visible
-            });
-
-            if (summary) { // only updates the summary text if that paragraph exists
-                let summaryText = `Showing ${visibleCount} securities after applying filters.`; // default message after filtering
-
-                if (activePreset === "low-risk") summaryText = `Showing ${visibleCount} low-risk securities. Filter logic: lower-volatility names that passed the model.`; // custom message for low-risk preset
-                else if (activePreset === "high-conviction") summaryText = `Showing ${visibleCount} high-conviction securities. Filter logic: names classified as YES — high conviction with score 7 or above.`; // custom message for high-conviction preset
-                else if (activePreset === "core") summaryText = `Showing ${visibleCount} core holdings. Filter logic: names classified as YES — core holding.`; // custom message for core preset
-                else if (activePreset === "satellite") summaryText = `Showing ${visibleCount} satellite / diversifier positions. Filter logic: names classified as YES — satellite.`; // custom message for satellite preset
-                else if (activePreset === "exploratory") summaryText = `Showing ${visibleCount} exploratory / high-risk positions. Filter logic: names classified as LIMITED — high risk / exploratory.`; // custom message for exploratory preset
-                else if (activePreset === "income") summaryText = `Showing ${visibleCount} income / defensive securities. Filter logic: defensive or bond-style instruments flagged by the model.`; // custom message for income preset
-                else if (activePreset === "best-ranked") summaryText = `Showing ${visibleCount} best-ranked securities. Filter logic: score 5 or above and Sharpe-like ratio of at least 0.3.`; // custom message for best-ranked preset
-                else if (activePreset === "cash") summaryText = `Showing ${visibleCount} cash / risk-control names. Filter logic: names classified as NO — hold as cash instead.`; // custom message for cash preset
-
-                summary.textContent = summaryText; // writes the final summary into the page
-            }
-        }
-
-        function clearDashboardFilters() { // resets all filters back to their default blank state
-            if (tickerFilter) tickerFilter.value = "";
-            if (decisionFilter) decisionFilter.value = "";
-            if (scoreFilter) scoreFilter.value = "";
-            if (volatilityFilter) volatilityFilter.value = "";
-            if (sharpeFilter) sharpeFilter.value = "";
-
-            activePreset = ""; // also clears whichever preset was active
-            applyDashboardFilters(); // re-runs filtering so the table refreshes immediately
-        }
-
-        if (presetLowRisk) presetLowRisk.addEventListener("click", function () { clearDashboardFilters(); activePreset = "low-risk"; applyDashboardFilters(); });
-        if (presetHighConviction) presetHighConviction.addEventListener("click", function () { clearDashboardFilters(); activePreset = "high-conviction"; applyDashboardFilters(); });
-        if (presetCore) presetCore.addEventListener("click", function () { clearDashboardFilters(); activePreset = "core"; applyDashboardFilters(); });
-        if (presetSatellite) presetSatellite.addEventListener("click", function () { clearDashboardFilters(); activePreset = "satellite"; applyDashboardFilters(); });
-        if (presetExploratory) presetExploratory.addEventListener("click", function () { clearDashboardFilters(); activePreset = "exploratory"; applyDashboardFilters(); });
-        if (presetIncome) presetIncome.addEventListener("click", function () { clearDashboardFilters(); activePreset = "income"; applyDashboardFilters(); });
-        if (presetBestRanked) presetBestRanked.addEventListener("click", function () { clearDashboardFilters(); activePreset = "best-ranked"; applyDashboardFilters(); });
-        if (presetCash) presetCash.addEventListener("click", function () { clearDashboardFilters(); activePreset = "cash"; applyDashboardFilters(); });
-        if (clearFiltersBtn) clearFiltersBtn.addEventListener("click", clearDashboardFilters);
-
-        [tickerFilter, decisionFilter, scoreFilter, volatilityFilter, sharpeFilter].forEach(control => {
-            if (control) {
-                control.addEventListener("input", function () {
-                    activePreset = "";
-                    applyDashboardFilters();
-                });
-
-                control.addEventListener("change", function () {
-                    activePreset = "";
-                    applyDashboardFilters();
-                });
-            }
-        });
-
-        function getCellValue(row, index) { // small helper to read the text from one table cell
-            return row.children[index].textContent.trim(); // returns the cleaned text value from that column
-        }
-
-        headers.forEach((header, index) => { // goes through every sortable table header
-            header.style.cursor = "pointer"; // changes the cursor so users can see the header is clickable
-            header.dataset.direction = "desc"; // stores a default starting sort direction
-
-            header.addEventListener("click", function () { // runs when a header is clicked
-                const rows = Array.from(tbody.querySelectorAll("tr")); // turns table rows into an array so JavaScript can sort them
-                const direction = this.dataset.direction === "asc" ? "desc" : "asc"; // flips between ascending and descending order
-                this.dataset.direction = direction; // saves the new direction on the clicked header
-
-                rows.sort((a, b) => { // sorts the row array
-                    const aText = getCellValue(a, index); // text from row a in the clicked column
-                    const bText = getCellValue(b, index); // text from row b in the clicked column
-
-                    const aNum = parseFloat(aText.replace(/[^\d.-]/g, "")); // tries to strip symbols and read the value as a number
-                    const bNum = parseFloat(bText.replace(/[^\d.-]/g, "")); // same idea for row b
-
-                    let comparison; // this will hold the comparison result
-                    if (!isNaN(aNum) && !isNaN(bNum)) comparison = aNum - bNum; // uses numeric sorting if both values are numbers
-                    else comparison = aText.localeCompare(bText); // otherwise falls back to text sorting
-
-                    return direction === "asc" ? comparison : -comparison; // returns the sort result in the chosen direction
-                });
-
-                rows.forEach(row => tbody.appendChild(row)); // puts the sorted rows back into the table
-                applyDashboardFilters(); // runs filters again so sorting and filtering stay in sync
-            });
-        });
-
-        applyDashboardFilters(); // runs once when the page first loads so everything starts in a clean state
+def build_market_rows():
+    dashboard_tickers = sorted({
+        ticker
+        for group in MASTER_TICKERS.values()
+        for ticker in group
+    })
+
+    rows = []
+
+    batch_data = yf.download(
+        tickers=dashboard_tickers,
+        period="1y",
+        auto_adjust=True,
+        progress=False,
+        group_by="ticker",
+        threads=True
+    )
+
+    for ticker in dashboard_tickers:
+        metrics_1y = compute_metrics_from_batch(batch_data, ticker)
+
+        beta = None  # Still unavailable in fast dashboard mode
+
+        decision_pack = score_and_decide(
+            expected_return=metrics_1y["annualised_expected_return"],
+            volatility=metrics_1y["annualised_volatility"],
+            sharpe_like=metrics_1y["sharpe_like"],
+            beta=beta
+        )
+
+        expected_return_percent = round(metrics_1y["annualised_expected_return"] * 100, 2)
+        volatility_percent = round(metrics_1y["annualised_volatility"] * 100, 2)
+        sharpe_like_value = round(metrics_1y["sharpe_like"], 2)
+        latest_price = round(metrics_1y["latest_price"], 2)
+
+        ranking_score = (
+            (metrics_1y["annualised_expected_return"] * 0.50)
+            + (metrics_1y["sharpe_like"] * 0.30)
+            - (metrics_1y["annualised_volatility"] * 0.20)
+        )
+
+        is_low_risk = (
+            metrics_1y["annualised_volatility"] <= 0.18
+            and decision_pack["decision"] != "NO — hold as cash instead"
+        )
+
+        is_high_conviction = (
+            decision_pack["decision"] == "YES — high conviction"
+            and decision_pack["score"] >= 7
+        )
+
+        is_income_candidate = ticker in {"IEF", "SHY", "AGG", "BND", "TIP", "XLP", "XLV", "XLU"}
+
+        is_best_ranked = (
+            decision_pack["score"] >= 5
+            and metrics_1y["sharpe_like"] >= 0.3
+        )
+
+        is_core_holding = decision_pack["decision"] == "YES — core holding"
+        is_satellite = decision_pack["decision"] == "YES — satellite"
+        is_exploratory = decision_pack["decision"] == "LIMITED — high risk / exploratory"
+        is_cash_candidate = decision_pack["decision"] == "NO — hold as cash instead"
+
+        rows.append({
+            "ticker": ticker,
+            "latest_price": latest_price,
+            "score": decision_pack["score"],
+            "decision": decision_pack["decision"],
+            "tag": decision_pack["tag"],
+            "suggested_weight": decision_pack["recommended_weight"],
+            "expected_return_percent": expected_return_percent,
+            "volatility": volatility_percent,
+            "sharpe_like": sharpe_like_value,
+            "ranking_score": round(ranking_score, 3),
+            "is_low_risk": is_low_risk,
+            "is_high_conviction": is_high_conviction,
+            "is_core_holding": is_core_holding,
+            "is_satellite": is_satellite,
+            "is_exploratory": is_exploratory,
+            "is_income_candidate": is_income_candidate,
+            "is_best_ranked": is_best_ranked,
+            "is_cash_candidate": is_cash_candidate,
+        })
+
+    rows.sort(key=lambda row: row["ranking_score"], reverse=True)
+    return rows
+
+def get_cached_market_rows():
+    now = time.time()
+
+    if (
+        dashboard_cache["rows"] is None
+        or now - dashboard_cache["timestamp"] > DASHBOARD_CACHE_SECONDS
+    ):
+        dashboard_cache["rows"] = build_market_rows()
+        dashboard_cache["timestamp"] = now
+
+    return dashboard_cache["rows"]
+
+
+# ============================================================  # Decorative divider to separate the HTML page routes section
+# ROUTES → HTML PAGES  # This section contains Flask routes that return HTML templates
+# ============================================================  # Decorative divider closing the section title
+
+@app.route("/")  # Registers the root URL so visiting the site homepage triggers the home() function
+def home():  # Defines the Flask view function for the home page
+    return render_template("index.html")  # Renders the index.html template and sends it back to the browser
+
+@app.route("/criteria")  # Registers the /criteria URL so Flask knows which function should handle that page
+def criteria():  # Defines the Flask view function for the criteria page
+    return render_template(  # Starts the template-rendering call for criteria.html
+        "criteria.html",  # Tells Flask to render the criteria.html file from the templates folder
+        portfolio_choices=get_portfolio_choices(),  # Passes the dropdown-ready portfolio choice list into the Jinja template
+        default_portfolio_key="scenario1",  # Passes scenario1 as the default selected portfolio in the dropdown
+        default_portfolio_name=get_portfolio_display_name(PORTFOLIO_1)  # Passes the display name of PORTFOLIO_1 for default page text
+    )  # Ends the render_template call
+
+@app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
+def market_dashboard():  # Defines the Flask view function for the dashboard page
+    rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
+    return render_template("market_dashboard.html", rows=rows)  # Renders market_dashboard.html and passes the rows variable into the Jinja template
+
+@app.route("/contact")  # Registers the /contact route for the contact page
+def contact():  # Defines the Flask view function for the contact page
+    return render_template("contact.html")  # Renders the contact.html template and returns it to the browser
+
+
+@app.route("/portfolio_profiles")  # Registers the /portfolio_profiles route for the portfolio workflow/profile page
+def portfolio_profiles():  # Defines the Flask view function for the portfolio profiles page
+    return render_template("portfolio_profiles.html", portfolios=PORTFOLIOS)  # Renders portfolio_profiles.html and passes the full PORTFOLIOS dictionary into the Jinja template
+
+# ============================================================ 
+# ROUTES → API ENDPOINTS  # This section contains Flask routes that return JSON data instead of HTML
+# ============================================================  
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    ticker = request.form.get("ticker", "").strip().upper()
+    portfolio_key = request.form.get("portfolio_key", "scenario1")
+
+    if portfolio_key not in PORTFOLIOS:
+        return jsonify({"error": "Invalid portfolio selected."}), 400
+
+    if not ticker:
+        return jsonify({"error": "Please select a ticker."}), 400
+
+    try:
+        benchmark_ticker = PORTFOLIOS[portfolio_key]["ticker"]
+        result = analyze_stock(ticker, benchmark_ticker, portfolio_key)
+        return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": f"Analysis failed: {str(e)}"}), 500
+
+@app.route("/add-to-portfolio", methods=["POST"])
+def add_to_portfolio():
+    data = request.get_json(force=True)
+
+    ticker = data.get("ticker")
+    portfolio_key = data.get("portfolio_key")
+    portfolio_name = data.get("portfolio_name")
+    recommended_weight = data.get("recommended_weight")
+    decision = data.get("decision")
+    tag = data.get("tag")
+    sector = data.get("sector")
+    industry = data.get("industry")
+    beta = data.get("beta")
+
+    if not ticker or not portfolio_key or portfolio_key not in PORTFOLIOS:
+        return jsonify({"error": "Invalid stock or portfolio."}), 400
+
+    validation = validate_portfolio_addition(
+        portfolio_key=portfolio_key,
+        ticker=ticker,
+        recommended_weight=recommended_weight,
+        sector=sector,
+        industry=industry
+    )
+
+    if validation["errors"]:
+        return jsonify({
+            "error": validation["errors"],
+            "warnings": validation["warnings"]
+        }), 400
+
+    existing_stock = next(
+        (stock for stock in selected_stocks[portfolio_key] if stock["ticker"] == ticker),
+        None
+    )
+
+    payload = {
+        "portfolio_name": portfolio_name,
+        "ticker": ticker,
+        "recommended_weight": recommended_weight,
+        "weight_decimal": validation["weight_decimal"],
+        "decision": decision,
+        "tag": tag,
+        "sector": sector,
+        "industry": industry,
+        "beta": beta
     }
 
-    // =========================================================
-    // PAGE STARTUP / WHAT RUNS ON LOAD
-    // Why this section matters:
-    // - turns on shared UI behaviour
-    // - then starts the logic for whichever HTML page is currently open
-    // =========================================================
-    initialiseStaticAccordions(); // activates accordion buttons already on the page
-    initialiseChecklistCollapsible(); // activates collapsible checklist sections
-    initialiseIndexPage(); // runs homepage logic if the user is on index.html
-    initialisePortfolioProfilesPage(); // runs portfolio profiles logic if that page is open
-    initialiseCriteriaPage(); // runs all Criteria page logic
-    initialiseMarketDashboard(); // runs all Market Dashboard logic
-    initialiseContactPage(); // runs contact page logic if needed
+    if existing_stock:
+        existing_stock.update(payload)
+        message = f"{ticker} updated in portfolio."
+    else:
+        selected_stocks[portfolio_key].append(payload)
+        message = f"{ticker} added to portfolio."
 
-}); 
+    return jsonify({
+        "message": message,
+        "warnings": validation["warnings"],
+        "portfolio": build_grouped_portfolio_payload()
+    })
+
+@app.route("/portfolio-stocks")  # Registers the /portfolio-stocks endpoint used by JavaScript to fetch grouped portfolio holdings
+def portfolio_stocks():  # Defines the Flask view function for returning current selected holdings
+    return jsonify(build_grouped_portfolio_payload())  # Returns the grouped holdings and summary metrics as JSON
+
+# ============================================================  # Decorative divider to separate route code from the final app runner
+# RUN APP  # This section runs the Flask development server when the file is executed directly
+# ============================================================  # Decorative divider closing the final section title
+if __name__ == "__main__":  # Checks whether this file is being run directly rather than imported into another Python file
+    app.run(debug=True)  # Starts the Flask development server with debug mode enabled so code changes and errors are easier to test
