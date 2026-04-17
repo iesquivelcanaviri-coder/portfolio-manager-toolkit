@@ -872,6 +872,7 @@ MASTER_TICKERS = {
 }
 
 
+
 def build_market_rows():
     dashboard_tickers = sorted({
         ticker
@@ -881,19 +882,23 @@ def build_market_rows():
 
     rows = []
 
-    batch_data = yf.download(
-        tickers=dashboard_tickers,
-        period="1y",
-        auto_adjust=True,
-        progress=False,
-        group_by="ticker",
-        threads=True
-    )
+    try:
+        batch_data = yf.download(
+            tickers=dashboard_tickers,
+            period="1y",
+            auto_adjust=True,
+            progress=False,
+            group_by="ticker",
+            threads=False
+        )
+    except Exception as e:
+        print(f"Dashboard batch download failed: {e}")
+        batch_data = None
 
     for ticker in dashboard_tickers:
         metrics_1y = compute_metrics_from_batch(batch_data, ticker)
 
-        beta = None  # Still unavailable in fast dashboard mode
+        beta = None
 
         decision_pack = score_and_decide(
             expected_return=metrics_1y["annualised_expected_return"],
@@ -959,6 +964,8 @@ def build_market_rows():
     rows.sort(key=lambda row: row["ranking_score"], reverse=True)
     return rows
 
+
+
 def get_cached_market_rows():
     now = time.time()
 
@@ -989,10 +996,14 @@ def criteria():  # Defines the Flask view function for the criteria page
         default_portfolio_name=get_portfolio_display_name(PORTFOLIO_1)  # Passes the display name of PORTFOLIO_1 for default page text
     )  # Ends the render_template call
 
-@app.route("/market_dashboard")  # Registers the /market_dashboard route for the market dashboard page
-def market_dashboard():  # Defines the Flask view function for the dashboard page
-    rows = get_cached_market_rows()  # Loads cached market rows so the page can render faster
-    return render_template("market_dashboard.html", rows=rows)  # Renders market_dashboard.html and passes the rows variable into the Jinja template
+@app.route("/market_dashboard")
+def market_dashboard():
+    try:
+        rows = get_cached_market_rows()
+        return render_template("market_dashboard.html", rows=rows)
+    except Exception as e:
+        print(f"Market dashboard route failed: {e}")
+        return render_template("market_dashboard.html", rows=[])
 
 @app.route("/contact")  # Registers the /contact route for the contact page
 def contact():  # Defines the Flask view function for the contact page
