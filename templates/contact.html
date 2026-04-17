@@ -1,44 +1,73 @@
-<!DOCTYPE html> <!-- Declares the document as HTML5 so the browser uses modern rendering standards -->
-<html lang="en"> <!-- Root HTML element; sets the language to English which helps accessibility tools and SEO -->
-<head> <!-- Head section contains metadata and links to external resources -->
-    <meta charset="UTF-8"> <!-- Defines character encoding as UTF-8 so all text (including symbols) displays correctly -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Makes the page responsive by controlling layout scaling on mobile devices -->
-    <title>Contact</title> <!-- Sets the page title that appears in the browser tab -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links the external CSS file using Flask's url_for() so the correct static path is generated -->
-</head> <!-- Ends the head section -->
+<!DOCTYPE html> <!-- using HTML5 -->
+<html lang="en"> <!-- page language set to English -->
 
-<body> <!-- Starts the visible content section of the webpage -->
-<div class="container"> <!-- Main wrapper div; "container" class is used in CSS to control layout width, spacing, and alignment -->
+<!-- ========================================================= -->
+<!-- NOTE ON COMMENTS -->
+<!-- ========================================================= -->
+<!-- I avoided adding comments on every single line because in HTML (especially with Jinja templates),
+too many inline comments can make the file harder to read and sometimes interfere with how dynamic
+content is rendered. Instead, I focused on commenting key sections and important logic so the structure
+and purpose of the page is still clear. -->
 
-    {% set active_page = 'contact' %} <!-- Jinja variable that sets the current page name; used by the navbar to highlight the active link -->
-    {% include '_navbar.html' %} <!-- Includes the reusable navbar template so navigation appears on this page -->
+<!-- ========================================================= -->
+<!-- HEAD SECTION (Page setup + styling) -->
+<!-- ========================================================= -->
+<head> <!-- contains page settings and CSS -->
+    <meta charset="UTF-8"> <!-- ensures text displays correctly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- makes layout responsive -->
+    <title>Contact</title> <!-- title shown in browser tab -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- connects to main CSS file -->
+</head>
 
-    <div class="card"> <!-- Creates a styled content box using the "card" class defined in CSS -->
-        <h1>Contact</h1> <!-- Main heading for the page -->
-        <p> <!-- Paragraph explaining the purpose of the project -->
+<!-- ========================================================= -->
+<!-- BODY SECTION (What the user actually sees) -->
+<!-- ========================================================= -->
+<body> <!-- start of visible page content -->
+
+<div class="container"> <!-- main layout wrapper for spacing and alignment -->
+
+    {% set active_page = 'contact' %} <!-- tells navbar which page is active -->
+    {% include '_navbar.html' %} <!-- loads shared navbar -->
+
+    <!-- ========================================================= -->
+    <!-- PROJECT DESCRIPTION -->
+    <!-- ========================================================= -->
+    <div class="card"> <!-- card used to group this content nicely -->
+        <h1>Contact</h1> <!-- main page title -->
+
+        <p>
             This project was developed as a portfolio management decision-support application
             using Flask, HTML, CSS, JavaScript, and Yahoo Finance data.
-        </p> <!-- Ends the paragraph -->
-        <p> <!-- Second paragraph providing more context about the application -->
+        </p> <!-- short intro explaining what the project is -->
+
+        <p>
             It demonstrates how a portfolio manager can combine client mandate information,
             investment decision criteria, market analysis, and portfolio construction logic
             into a simple workflow.
-        </p> <!-- Ends the paragraph -->
-    </div> <!-- Ends the first card -->
+        </p> <!-- explains the idea behind the system -->
+    </div>
 
-    <div class="card"> <!-- Creates another styled card section -->
-        <h2>Project Focus</h2> <!-- Subheading introducing the list of key features -->
-        <ul> <!-- Unordered list to display project focus points -->
-            <li>Portfolio-specific suitability analysis</li> <!-- List item describing analysis aligned to portfolio mandates -->
-            <li>Risk and return assessment</li> <!-- List item describing evaluation of expected return vs volatility -->
-            <li>Position sizing decisions</li> <!-- List item describing how weights are assigned to assets -->
-            <li>Market screening and ranking</li> <!-- List item describing filtering and ranking securities -->
-            <li>Portfolio construction support</li> <!-- List item describing how the tool helps build portfolios -->
-        </ul> <!-- Ends the unordered list -->
-    </div> <!-- Ends the second card -->
+    <!-- ========================================================= -->
+    <!-- PROJECT FEATURES / WHAT IT DOES -->
+    <!-- ========================================================= -->
+    <div class="card"> <!-- second card for features -->
+        <h2>Project Focus</h2> <!-- section heading -->
 
-</div> <!-- Ends the container div wrapping all page content -->
+        <ul> <!-- list of key features -->
+            <li>Portfolio-specific suitability analysis</li> <!-- checks if investments match the mandate -->
+            <li>Risk and return assessment</li> <!-- compares expected return vs volatility -->
+            <li>Position sizing decisions</li> <!-- decides how much to allocate -->
+            <li>Market screening and ranking</li> <!-- filters and ranks securities -->
+            <li>Portfolio construction support</li> <!-- helps build the portfolio -->
+        </ul>
+    </div>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links the JavaScript file using Flask url_for(); placed at the end for better page load performance -->
-</body> <!-- Ends the body section -->
-</html> <!-- Ends the HTML document -->
+</div> <!-- main container closes -->
+
+<!-- ========================================================= -->
+<!-- JAVASCRIPT (Interactivity layer) -->
+<!-- ========================================================= -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- connects JS for any dynamic behaviour -->
+
+</body>
+</html>

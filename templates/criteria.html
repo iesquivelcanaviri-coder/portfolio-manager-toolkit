@@ -1,36 +1,44 @@
-<!DOCTYPE html> <!-- Declares HTML5 document type, ensuring modern browser rendering standards -->
+<!DOCTYPE html> <!-- using HTML5 so the page follows modern browser rules -->
 
-<html lang="en"> <!-- Root element; sets language to English for accessibility and SEO -->
+<html lang="en"> <!-- main HTML tag, language set to English -->
 
-<head> <!-- Contains metadata, styles, and document configuration -->
-    <meta charset="UTF-8"> <!-- Defines UTF-8 encoding to correctly render text and symbols -->
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Enables responsive layout on mobile devices -->
-    <title>Portfolio Criteria</title> <!-- Title shown in browser tab -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- Links Flask static CSS file using url_for to ensure correct path resolution -->
+<head> <!-- page setup, title, and CSS link -->
+    <meta charset="UTF-8"> <!-- makes sure text and symbols display properly -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- helps the layout adjust on smaller screens -->
+    <title>Portfolio Criteria</title> <!-- text shown in the browser tab -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}"> <!-- connects this page to the main stylesheet -->
 </head>
 
-<body> <!-- Main visible content of the webpage -->
-<div class="container"> <!-- Wrapper container used for layout consistency and styling -->
+<body> <!-- everything the user sees goes inside here -->
+<div class="container"> <!-- main wrapper used to keep spacing and layout consistent -->
 
-    {% set active_page = 'criteria' %} <!-- Jinja variable used to highlight active page in navbar -->
-    {% include '_navbar.html' %} <!-- Includes reusable navigation bar template -->
+    {% set active_page = 'criteria' %} <!-- used so the navbar knows this is the current page -->
+    {% include '_navbar.html' %} <!-- brings in the shared navbar template -->
 
-    <h1>Portfolio Criteria</h1> <!-- Main page heading -->
+    <h1>Portfolio Criteria</h1> <!-- main heading for this page -->
+
+    <!-- ========================================================= -->
+    <!-- COMMENTING NOTE -->
+    <!-- I did not put comments on every single line because too many -->
+    <!-- inline comments in HTML can make the file harder to read and -->
+    <!-- can sometimes get in the way when checking structure/layout. -->
+    <!-- So I only commented the parts that are actually useful. -->
+    <!-- ========================================================= -->
 
     <!-- ========================= -->
     <!-- COLLAPSIBLE CHECKLIST -->
     <!-- ========================= -->
 
-    <div class="collapsible-card"> <!-- Card container styled for collapsible section -->
-        <button class="collapsible-btn" type="button">High-Level Checklist</button> <!-- Button triggers expand/collapse via JS -->
-        <div class="collapsible-content"> <!-- Hidden content that expands when button is clicked -->
-            <ul> <!-- Unordered list of portfolio evaluation criteria -->
-                <li>Expected return should be attractive relative to risk.</li> <!-- Ensures return compensates for risk -->
-                <li>Volatility should be appropriate for the portfolio objective.</li> <!-- Aligns with risk tolerance -->
-                <li>Beta should be consistent with the benchmark and mandate.</li> <!-- Ensures market exposure alignment -->
-                <li>The stock or ETF should justify its portfolio weight.</li> <!-- Validates position sizing -->
-                <li>Risk-adjusted return should support the investment case.</li> <!-- Uses Sharpe-like logic -->
-                <li>The final decision should map to a realistic portfolio size.</li> <!-- Ensures implementability -->
+    <div class="collapsible-card"> <!-- collapsible area for the quick checklist -->
+        <button class="collapsible-btn" type="button">High-Level Checklist</button> <!-- button that opens and closes the checklist -->
+        <div class="collapsible-content"> <!-- content hidden until the button is clicked -->
+            <ul> <!-- quick summary of what should be checked before investing -->
+                <li>Expected return should be attractive relative to risk.</li> <!-- return should be worth the risk taken -->
+                <li>Volatility should be appropriate for the portfolio objective.</li> <!-- risk level should match the portfolio style -->
+                <li>Beta should be consistent with the benchmark and mandate.</li> <!-- market sensitivity should fit the strategy -->
+                <li>The stock or ETF should justify its portfolio weight.</li> <!-- position size should make sense -->
+                <li>Risk-adjusted return should support the investment case.</li> <!-- not just raw return, but return compared to risk -->
+                <li>The final decision should map to a realistic portfolio size.</li> <!-- decision should match a realistic allocation -->
             </ul>
         </div>
     </div>
@@ -39,44 +47,42 @@
     <!-- POSITION SIZING SECTION -->
     <!-- ========================= -->
 
-    <div class="box"> <!-- Main container for position sizing framework -->
-        <h2>Position Sizing Criteria</h2> <!-- Section title -->
+    <div class="box"> <!-- main block for the position sizing framework -->
+        <h2>Position Sizing Criteria</h2> <!-- section title -->
 
-        <!-- Accordion button controls visibility of panel below -->
-        <button type="button" class="accordion">6% Position – High Conviction</button> <!-- High conviction position -->
-        <div class="panel"> <!-- Hidden panel toggled via JavaScript -->
-            <p class="title">Qualitative Criteria</p> <!-- Section label -->
+        <button type="button" class="accordion">6% Position – High Conviction</button> <!-- biggest position size for strongest ideas -->
+        <div class="panel"> <!-- hidden section opened by the accordion -->
+            <p class="title">Qualitative Criteria</p> <!-- heading for non-numeric factors -->
             <ul>
-                <li>Strongest investment thesis</li> <!-- High conviction idea -->
-                <li>High-quality business</li> <!-- Strong fundamentals -->
-                <li>Predictable earnings</li> <!-- Stability -->
-                <li>Clear catalyst</li> <!-- Identifiable upside driver -->
-                <li>Low-to-moderate volatility</li> <!-- Controlled risk -->
-                <li>High liquidity</li> <!-- Easy execution -->
-                <li>Portfolio manager understands the company deeply</li> <!-- Knowledge advantage -->
+                <li>Strongest investment thesis</li> <!-- highest conviction idea -->
+                <li>High-quality business</li> <!-- strong company quality -->
+                <li>Predictable earnings</li> <!-- more reliable performance -->
+                <li>Clear catalyst</li> <!-- visible reason for upside -->
+                <li>Low-to-moderate volatility</li> <!-- risk is still controlled -->
+                <li>High liquidity</li> <!-- easier to enter and exit -->
+                <li>Portfolio manager understands the company deeply</li> <!-- manager should know the idea well -->
             </ul>
 
-            <p class="title">The Math Behind a 6% Position</p> <!-- Transition to quantitative logic -->
+            <p class="title">The Math Behind a 6% Position</p> <!-- heading for the more quantitative side -->
 
-            <p><strong>1. Expected Return (ER)</strong></p> <!-- Metric label -->
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- Core valuation formula -->
-            <p><strong>How it is applied:</strong> A high weight requires high expected return.</p> <!-- Interpretation -->
+            <p><strong>1. Expected Return (ER)</strong></p>
+            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- basic expected return formula -->
+            <p><strong>How it is applied:</strong> A high weight requires high expected return.</p> <!-- bigger positions need stronger upside -->
 
             <p><strong>2. Risk-Adjusted Return (RAR)</strong></p>
-            <p><strong>Formula:</strong> RAR = ER / σ</p> <!-- σ = volatility -->
-            <p><strong>How it is applied:</strong> Return must justify volatility.</p>
+            <p><strong>Formula:</strong> RAR = ER / σ</p> <!-- sigma means volatility -->
+            <p><strong>How it is applied:</strong> Return must justify volatility.</p> <!-- good return alone is not enough -->
 
             <p><strong>3. Correlation to Portfolio</strong></p>
-            <p><strong>Formula:</strong> Marginal Risk = w · σ · ρ</p> <!-- w=weight, ρ=correlation -->
-            <p><strong>How it is applied:</strong> Avoid concentration risk.</p>
+            <p><strong>Formula:</strong> Marginal Risk = w · σ · ρ</p> <!-- w is weight and rho is correlation -->
+            <p><strong>How it is applied:</strong> Avoid concentration risk.</p> <!-- helps reduce overlap with existing holdings -->
 
             <p><strong>4. Contribution to Portfolio Risk</strong></p>
-            <p><strong>Formula:</strong> Risk Contribution = w · β</p> <!-- β = sensitivity to market -->
-            <p><strong>How it is applied:</strong> Keeps portfolio beta stable.</p>
+            <p><strong>Formula:</strong> Risk Contribution = w · β</p> <!-- beta helps show market sensitivity -->
+            <p><strong>How it is applied:</strong> Keeps portfolio beta stable.</p> <!-- avoids changing total portfolio risk too much -->
         </div>
 
-        <!-- Repeatable accordion structure -->
-        <button type="button" class="accordion">3.5% Position – Core Holding</button> <!-- Medium conviction -->
+        <button type="button" class="accordion">3.5% Position – Core Holding</button> <!-- medium-sized position for stable core names -->
         <div class="panel">
             <p class="title">Qualitative Criteria</p>
             <ul>
@@ -89,13 +95,13 @@
 
             <p class="title">The Math Behind a 3.5% Position</p>
 
-            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- Expected return formula reused -->
-            <p><strong>Formula:</strong> σ &lt; Portfolio Average</p> <!-- Lower volatility requirement -->
-            <p><strong>Formula:</strong> Correlation = ρ</p> <!-- Diversification metric -->
-            <p><strong>Formula:</strong> Risk Contribution ≈ 3–5%</p> <!-- Controlled risk share -->
+            <p><strong>Formula:</strong> ER = (Target Price − Current Price) / Current Price</p> <!-- expected return still matters -->
+            <p><strong>Formula:</strong> σ &lt; Portfolio Average</p> <!-- lower volatility than the average portfolio -->
+            <p><strong>Formula:</strong> Correlation = ρ</p> <!-- diversification is still considered -->
+            <p><strong>Formula:</strong> Risk Contribution ≈ 3–5%</p> <!-- moderate share of total portfolio risk -->
         </div>
 
-        <button type="button" class="accordion">3% Position – Satellite / Diversifier</button> <!-- Diversification role -->
+        <button type="button" class="accordion">3% Position – Satellite / Diversifier</button> <!-- smaller position mainly used for diversification -->
         <div class="panel">
             <p class="title">Qualitative Criteria</p>
             <ul>
@@ -105,12 +111,12 @@
                 <li>Thematic exposure</li>
             </ul>
 
-            <p><strong>Formula:</strong> σ &gt; Portfolio Average</p> <!-- Higher risk tolerated -->
-            <p><strong>Formula:</strong> ρ &lt; 0.5</p> <!-- Low correlation benefit -->
-            <p><strong>Formula:</strong> Risk Contribution ≈ 2–3%</p> <!-- Limited impact -->
+            <p><strong>Formula:</strong> σ &gt; Portfolio Average</p> <!-- allows higher volatility -->
+            <p><strong>Formula:</strong> ρ &lt; 0.5</p> <!-- lower correlation helps diversification -->
+            <p><strong>Formula:</strong> Risk Contribution ≈ 2–3%</p> <!-- keeps total portfolio impact smaller -->
         </div>
 
-        <button type="button" class="accordion">1–2% Position – High Risk / Exploratory</button> <!-- Speculative allocation -->
+        <button type="button" class="accordion">1–2% Position – High Risk / Exploratory</button> <!-- very small position for speculative ideas -->
         <div class="panel">
             <ul>
                 <li>Very high volatility</li>
@@ -118,12 +124,12 @@
                 <li>Illiquid</li>
             </ul>
 
-            <p><strong>Formula:</strong> σ ≫ Portfolio Average</p> <!-- Very high volatility -->
-            <p><strong>Formula:</strong> β &gt; 1.3</p> <!-- High market sensitivity -->
-            <p><strong>Formula:</strong> Risk Contribution &lt; 1%</p> <!-- Minimal risk share -->
+            <p><strong>Formula:</strong> σ ≫ Portfolio Average</p> <!-- much riskier than the rest of the portfolio -->
+            <p><strong>Formula:</strong> β &gt; 1.3</p> <!-- high market sensitivity -->
+            <p><strong>Formula:</strong> Risk Contribution &lt; 1%</p> <!-- position should stay very small -->
         </div>
 
-        <button type="button" class="accordion">Cash (5%) – Risk Control</button> <!-- Defensive allocation -->
+        <button type="button" class="accordion">Cash (5%) – Risk Control</button> <!-- cash option used when investing is not attractive -->
         <div class="panel">
             <ul>
                 <li>Flexibility</li>
@@ -131,8 +137,8 @@
                 <li>Dry powder</li>
             </ul>
 
-            <p><strong>Formula:</strong> σ_portfolio = Σw²σ² + 2Σwᵢwⱼσᵢσⱼρᵢⱼ</p> <!-- Portfolio variance formula -->
-            <p><strong>How it is applied:</strong> Cash reduces volatility as σ=0.</p>
+            <p><strong>Formula:</strong> σ_portfolio = Σw²σ² + 2Σwᵢwⱼσᵢσⱼρᵢⱼ</p> <!-- general portfolio variance formula -->
+            <p><strong>How it is applied:</strong> Cash reduces volatility as σ=0.</p> <!-- cash lowers overall risk because its volatility is basically zero -->
         </div>
     </div>
 
@@ -140,29 +146,29 @@
     <!-- FORM SECTION -->
     <!-- ========================= -->
 
-    <div class="card">
-        <h2>Analyse a Ticker</h2> <!-- Section heading -->
+    <div class="card"> <!-- area where the user picks a portfolio and ticker -->
+        <h2>Analyse a Ticker</h2> <!-- section title -->
 
-        <form id="analyze-form" method="post" action="/analyze"> <!-- Sends data to Flask route /analyze -->
+        <form id="analyze-form" method="post" action="/analyze"> <!-- form sends the selected data to the Flask analyze route -->
             
-            <label for="portfolio_key">Select Portfolio</label> <!-- Label for dropdown -->
-            <select name="portfolio_key" id="portfolio_key" required> <!-- Required dropdown -->
-                {% for portfolio in portfolio_choices %} <!-- Jinja loop over portfolios -->
-                <option value="{{ portfolio.key }}" {% if portfolio.key == default_portfolio_key %}selected{% endif %}> <!-- Sets default selection -->
-                    {{ portfolio.name }} <!-- Display portfolio name -->
+            <label for="portfolio_key">Select Portfolio</label> <!-- label for portfolio dropdown -->
+            <select name="portfolio_key" id="portfolio_key" required> <!-- dropdown is required before submitting -->
+                {% for portfolio in portfolio_choices %} <!-- loops through portfolios passed from Flask -->
+                <option value="{{ portfolio.key }}" {% if portfolio.key == default_portfolio_key %}selected{% endif %}> <!-- keeps the default portfolio selected -->
+                    {{ portfolio.name }} <!-- shows the portfolio name to the user -->
                 </option>
                 {% endfor %}
             </select>
 
-            <label for="ticker">Select a ticker</label> <!-- Label -->
-            <select name="ticker" id="ticker" required> <!-- Dropdown for assets -->
-                <option value="">-- Choose a stock --</option> <!-- Default placeholder -->
-                <option value="AAPL">AAPL – Apple</option> <!-- Hardcoded ticker -->
+            <label for="ticker">Select a ticker</label> <!-- label for ticker dropdown -->
+            <select name="ticker" id="ticker" required> <!-- ticker must be chosen before the form can be sent -->
+                <option value="">-- Choose a stock --</option> <!-- placeholder option -->
+                <option value="AAPL">AAPL – Apple</option> <!-- sample hardcoded ticker -->
                 <option value="MSFT">MSFT – Microsoft</option>
                 <option value="NVDA">NVDA – Nvidia</option>
             </select>
 
-            <button type="submit">Analyze</button> <!-- Submits form to Flask backend -->
+            <button type="submit">Analyze</button> <!-- submits the form -->
         </form>
     </div>
 
@@ -170,33 +176,33 @@
     <!-- RESULTS SECTION -->
     <!-- ========================= -->
 
-    <div id="result-box"> <!-- Dynamic result container updated via JS -->
-        <h2 id="result-ticker">Select a stock to analyze</h2> <!-- Placeholder title -->
+    <div id="result-box"> <!-- box where analysis results will appear -->
+        <h2 id="result-ticker">Select a stock to analyze</h2> <!-- default message before analysis -->
 
-        <p><strong>Portfolio:</strong> <span id="portfolio-name">{{ default_portfolio_name }}</span></p> <!-- Injected default portfolio -->
-        <p><strong>Beta:</strong> <span id="beta-value">—</span></p> <!-- JS updates value -->
-        <p><strong>Score:</strong> <span id="score-value">—</span></p> <!-- Scoring metric -->
-        <p><strong>Decision:</strong> <span id="decision-value">—</span></p> <!-- Buy / Hold / Reject -->
-        <p><strong>Weight:</strong> <span id="weight-value">—</span></p> <!-- Suggested allocation -->
+        <p><strong>Portfolio:</strong> <span id="portfolio-name">{{ default_portfolio_name }}</span></p> <!-- shows the selected/default portfolio -->
+        <p><strong>Beta:</strong> <span id="beta-value">—</span></p> <!-- placeholder until JS updates it -->
+        <p><strong>Score:</strong> <span id="score-value">—</span></p> <!-- placeholder for score -->
+        <p><strong>Decision:</strong> <span id="decision-value">—</span></p> <!-- placeholder for final decision -->
+        <p><strong>Weight:</strong> <span id="weight-value">—</span></p> <!-- placeholder for suggested weight -->
 
-        <div class="action-row"> <!-- Button container -->
-            <button type="button" id="add-to-portfolio-btn" disabled>Add / Update Portfolio</button> <!-- Disabled until analysis complete -->
+        <div class="action-row"> <!-- action button area -->
+            <button type="button" id="add-to-portfolio-btn" disabled>Add / Update Portfolio</button> <!-- disabled until valid analysis is completed -->
         </div>
 
-        <div id="trade-message" class="trade-message"></div> <!-- Displays backend response -->
+        <div id="trade-message" class="trade-message"></div> <!-- used to show success or error messages -->
     </div>
 
     <!-- ========================= -->
     <!-- PORTFOLIO HOLDINGS -->
     <!-- ========================= -->
 
-    <div class="card">
-        <h2>Current Portfolio Holdings</h2> <!-- Section heading -->
-        <div id="portfolio-groups"></div> <!-- JS dynamically injects holdings -->
+    <div class="card"> <!-- area for current saved holdings -->
+        <h2>Current Portfolio Holdings</h2> <!-- section title -->
+        <div id="portfolio-groups"></div> <!-- JavaScript fills this area dynamically -->
     </div>
 
 </div>
 
-<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- Links JS file for interactivity (accordion, fetch, DOM updates) -->
+<script src="{{ url_for('static', filename='js/script.js') }}"></script> <!-- connects the JavaScript file for interactivity -->
 </body>
 </html>
