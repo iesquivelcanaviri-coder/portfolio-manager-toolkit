@@ -75,7 +75,7 @@ Rather than building a purely static website, I designed the project so that it 
 ---
 
 ## Project Structure
-
+```
 PORTFOLIO-MANAGEMENT-DECISION-SUPPORT-TOOL/
 │
 ├── app.py
