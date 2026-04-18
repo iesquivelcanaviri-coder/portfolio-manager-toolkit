@@ -76,27 +76,30 @@ Rather than building a purely static website, I designed the project so that it 
 
 ## Project Structure
 ```
-PORTFOLIO-MANAGEMENT-DECISION-SUPPORT-TOOL/
-│
+portfolio-manager-toolkit/
 ├── app.py
 ├── Procfile
 ├── requirements.txt
 ├── README.md
 ├── .gitignore
-│
 ├── static/
 │   ├── css/
 │   │   └── style.css
 │   └── js/
 │       └── script.js
-│
-└── templates/
-    ├── _navbar.html
-    ├── index.html
-    ├── contact.html
-    ├── criteria.html
-    ├── market_dashboard.html
-    └── portfolio_profiles.html
+├── templates/
+│   ├── _navbar.html
+│   ├── index.html
+│   ├── contact.html
+│   ├── criteria.html
+│   ├── market_dashboard.html
+│   └── portfolio_profiles.html
+└── images/
+    ├── home-page.png
+    ├── portfolio-profiles-page.png
+    ├── market-dashboard-page.png
+    ├── criteria-page.png
+    └── contact-page.png
 ```
 
 This structure helped me keep the project organised and easier to maintain:
@@ -404,3 +407,23 @@ The project is served in production using **Gunicorn**.
 
 * **GitHub Repository:** [https://github.com/iesquivelcanaviri-coder/portfolio-manager-toolkit.git](https://github.com/iesquivelcanaviri-coder/portfolio-manager-toolkit.git)
 * **Live Render URL:** [https://portfolio-manager-toolkit.onrender.com](https://portfolio-manager-toolkit.onrender.com)
+
+
+## Application Screenshots
+
+The following screenshots show the main pages of the application and demonstrate the structure, layout, and functionality of the web application.
+
+### Home Page
+![Home Page](images/home-page.png)
+
+### Portfolio Profiles Page
+![Portfolio Profiles Page](images/portfolio-profiles-page.png)
+
+### Market Dashboard Page
+![Market Dashboard Page](images/market-dashboard-page.png)
+
+### Criteria Page
+![Criteria Page](images/criteria-page.png)
+
+### Contact Page
+![Contact Page](images/contact-page.png)
