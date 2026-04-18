@@ -97,7 +97,7 @@ PORTFOLIO-MANAGEMENT-DECISION-SUPPORT-TOOL/
     ├── criteria.html
     ├── market_dashboard.html
     └── portfolio_profiles.html
-
+```
 
 This structure helped me keep the project organised and easier to maintain:
 
